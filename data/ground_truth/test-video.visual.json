@@ -1,0 +1,1298 @@
+{
+  "schema_version": 2,
+  "video": {
+    "filename": "testVideo.mp4",
+    "source_path_hint": "data/videos/40bd33ac-d916-4cd6-aa70-4468dfbe7292.mp4",
+    "sha256": "98906EA1EEE422352E3A0B9844E262240A5F330ED3226FE29A64C04CD356512A",
+    "width": 1080,
+    "height": 1920,
+    "fps": 59.94005994005994,
+    "frame_count": 2380,
+    "duration": 39.706333
+  },
+  "scope": {
+    "kind": "full_video_visual_caption_annotation",
+    "first_frame": 13,
+    "last_frame": 2379,
+    "event_count": 58,
+    "end_frame_semantics": "inclusive",
+    "end_time_semantics": "exclusive",
+    "state_policy": "One event represents the intended stable caption phrase. Progressive entrance animation, per-word colour highlighting, and motion blur do not create extra semantic events.",
+    "description": "Full-video hard-caption transcription. Tier A boundaries are adjacent-frame verified. Tier B boundaries are estimates from 2 fps strict OCR, the old aligned SRT, dense 4 fps contact-sheet inspection, and cheap per-source-frame visual-change candidates; they are not claimed exact."
+  },
+  "verification_tiers": {
+    "A": {
+      "meaning": "Both sides of the transition were manually checked on adjacent source frames.",
+      "boundary_uncertainty_frames": 0
+    },
+    "B": {
+      "meaning": "Text was manually confirmed, while one or both boundaries are visual-change estimates anchored by 2 fps OCR and dense frame inspection.",
+      "boundary_uncertainty_frames": 18
+    }
+  },
+  "subtitle_roi": {
+    "x": 0.14,
+    "y": 0.59,
+    "width": 0.72,
+    "height": 0.13,
+    "purpose": "Original manually selected production ROI retained for the PROTECT YOURSELF regression."
+  },
+  "annotation_roi": {
+    "x": 0.09,
+    "y": 0.54,
+    "width": 0.82,
+    "height": 0.19,
+    "purpose": "Expanded union ROI used for full-video annotation; includes the raised WHEN YOU DIE / ALL YOUR SHADOWS / DISAPPEAR captions and the opening title."
+  },
+  "coverage": {
+    "visible_caption_state_count": 58,
+    "unannotated_frame_ranges": [
+      {
+        "first_frame": 0,
+        "last_frame": 12,
+        "reason": "No stable hard-caption phrase is visible."
+      },
+      {
+        "first_frame": 144,
+        "last_frame": 148,
+        "reason": "Motion-blurred edit between the opening title and THE BUILD IS; no stable phrase is assigned."
+      }
+    ],
+    "known_boundary_conflicts": []
+  },
+  "regression_windows": [
+    {
+      "name": "protect_yourself",
+      "first_frame": 1727,
+      "last_frame": 1953,
+      "event_texts": [
+        "JUST TO",
+        "PROTECT YOURSELF",
+        "FROM BRAWLERS",
+        "LIKE MORTIS",
+        "I WOULD SAY"
+      ],
+      "verification": "All five transitions, including I WOULD SAY -> YOU CAN PLAY at frames 1953/1954, were checked on adjacent source frames. The formerly recorded last_frame 1959 was corrected to 1953."
+    }
+  ],
+  "events": [
+    {
+      "text": "HOW TO PLAY",
+      "first_frame": 13,
+      "last_frame": 21,
+      "start_time": 0.216883,
+      "end_time": 0.367033,
+      "position": [
+        126,
+        1080,
+        957,
+        1210
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 0.99,
+        "boundary": 0.65,
+        "source_ocr": null
+      },
+      "position_source": "manual_contact_sheet_estimate"
+    },
+    {
+      "text": "HOW TO PLAY / SIRIUS",
+      "first_frame": 22,
+      "last_frame": 143,
+      "start_time": 0.367033,
+      "end_time": 2.4024,
+      "position": [
+        126,
+        1080,
+        957,
+        1349
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 0.99,
+        "boundary": 0.65,
+        "source_ocr": null
+      },
+      "position_source": "manual_contact_sheet_estimate"
+    },
+    {
+      "text": "THE BUILD IS",
+      "first_frame": 149,
+      "last_frame": 198,
+      "start_time": 2.485817,
+      "end_time": 3.319983,
+      "position": [
+        334,
+        1227,
+        763,
+        1318
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9849
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "THE FIRST GADGET",
+      "first_frame": 199,
+      "last_frame": 249,
+      "start_time": 3.319983,
+      "end_time": 4.170833,
+      "position": [
+        236,
+        1226,
+        850,
+        1323
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9856
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "AND THE",
+      "first_frame": 250,
+      "last_frame": 287,
+      "start_time": 4.170833,
+      "end_time": 4.8048,
+      "position": [
+        390,
+        1234,
+        692,
+        1310
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9975
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "SECOND STARPOWER",
+      "first_frame": 288,
+      "last_frame": 335,
+      "start_time": 4.8048,
+      "end_time": 5.6056,
+      "position": [
+        198,
+        1238,
+        887,
+        1309
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9871
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "BASICALLY",
+      "first_frame": 336,
+      "last_frame": 373,
+      "start_time": 5.6056,
+      "end_time": 6.239567,
+      "position": [
+        363,
+        1235,
+        724,
+        1309
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9998
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "YOU HAVE TO",
+      "first_frame": 374,
+      "last_frame": 425,
+      "start_time": 6.239567,
+      "end_time": 7.1071,
+      "position": [
+        325,
+        1233,
+        767,
+        1313
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9852
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "USE THE GADGET",
+      "first_frame": 426,
+      "last_frame": 461,
+      "start_time": 7.1071,
+      "end_time": 7.7077,
+      "position": [
+        260,
+        1226,
+        824,
+        1320
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9996
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "TO SLOW THEM",
+      "first_frame": 462,
+      "last_frame": 497,
+      "start_time": 7.7077,
+      "end_time": 8.3083,
+      "position": [
+        296,
+        1232,
+        797,
+        1312
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9876
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "AND",
+      "first_frame": 498,
+      "last_frame": 513,
+      "start_time": 8.3083,
+      "end_time": 8.575233,
+      "position": [
+        459,
+        1232,
+        626,
+        1314
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 1
+      },
+      "position_source": "paddleocr_target_frame"
+    },
+    {
+      "text": "JUST 3-TAP THEM",
+      "first_frame": 514,
+      "last_frame": 583,
+      "start_time": 8.575233,
+      "end_time": 9.743067,
+      "position": [
+        256,
+        1230,
+        835,
+        1315
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9874
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "THE SECOND STARPOWER",
+      "first_frame": 584,
+      "last_frame": 632,
+      "start_time": 9.743067,
+      "end_time": 10.56055,
+      "position": [
+        133,
+        1232,
+        960,
+        1312
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9897
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "IS REALLY GOOD TO",
+      "first_frame": 633,
+      "last_frame": 659,
+      "start_time": 10.56055,
+      "end_time": 11.011,
+      "position": [
+        222,
+        1228,
+        868,
+        1317
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.992
+      },
+      "position_source": "paddleocr_target_frame"
+    },
+    {
+      "text": "ADD MORE SHADOWS",
+      "first_frame": 660,
+      "last_frame": 721,
+      "start_time": 11.011,
+      "end_time": 12.045367,
+      "position": [
+        187,
+        1229,
+        899,
+        1312
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9959
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "YOU DON'T HAVE",
+      "first_frame": 722,
+      "last_frame": 773,
+      "start_time": 12.045367,
+      "end_time": 12.9129,
+      "position": [
+        274,
+        1236,
+        823,
+        1308
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.984
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "TO USE THEM",
+      "first_frame": 774,
+      "last_frame": 797,
+      "start_time": 12.9129,
+      "end_time": 13.3133,
+      "position": [
+        332,
+        1236,
+        761,
+        1309
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9989
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "EVERY TIME",
+      "first_frame": 798,
+      "last_frame": 833,
+      "start_time": 13.3133,
+      "end_time": 13.9139,
+      "position": [
+        348,
+        1235,
+        740,
+        1311
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9805
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "YOU HAVE",
+      "first_frame": 834,
+      "last_frame": 853,
+      "start_time": 13.9139,
+      "end_time": 14.247567,
+      "position": [
+        378,
+        1236,
+        719,
+        1311
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9999
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "TO WATCH OUT",
+      "first_frame": 854,
+      "last_frame": 880,
+      "start_time": 14.247567,
+      "end_time": 14.698017,
+      "position": [
+        296,
+        1232,
+        795,
+        1315
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9791
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "BECAUSE FOR EXAMPLE",
+      "first_frame": 881,
+      "last_frame": 921,
+      "start_time": 14.698017,
+      "end_time": 15.382033,
+      "position": [
+        163,
+        1236,
+        925,
+        1310
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9778
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "IN BRAWL BALL",
+      "first_frame": 922,
+      "last_frame": 959,
+      "start_time": 15.382033,
+      "end_time": 16.016,
+      "position": [
+        288,
+        1235,
+        794,
+        1313
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9807
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "IF YOU ARE LIKE",
+      "first_frame": 960,
+      "last_frame": 997,
+      "start_time": 16.016,
+      "end_time": 16.649967,
+      "position": [
+        286,
+        1229,
+        805,
+        1313
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9857
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "ONE-SHOT TO GET",
+      "first_frame": 998,
+      "last_frame": 1026,
+      "start_time": 16.649967,
+      "end_time": 17.133783,
+      "position": [
+        240,
+        1229,
+        849,
+        1314
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9985
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "SHADOW AND",
+      "first_frame": 1027,
+      "last_frame": 1079,
+      "start_time": 17.133783,
+      "end_time": 18.018,
+      "position": [
+        306,
+        1233,
+        777,
+        1311
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9951
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "SOMEONE IS SCORING",
+      "first_frame": 1080,
+      "last_frame": 1109,
+      "start_time": 18.018,
+      "end_time": 18.5185,
+      "position": [
+        187,
+        1232,
+        897,
+        1310
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9752
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "A GOAL",
+      "first_frame": 1110,
+      "last_frame": 1139,
+      "start_time": 18.5185,
+      "end_time": 19.019,
+      "position": [
+        409,
+        1232,
+        673,
+        1312
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9999
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "THAT BAR IS",
+      "first_frame": 1140,
+      "last_frame": 1184,
+      "start_time": 19.019,
+      "end_time": 19.76975,
+      "position": [
+        344,
+        1231,
+        748,
+        1315
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9909
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "GOING TO DISAPPEAR",
+      "first_frame": 1185,
+      "last_frame": 1227,
+      "start_time": 19.76975,
+      "end_time": 20.487133,
+      "position": [
+        181,
+        1222,
+        909,
+        1320
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.999
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "SO YOU HAVE TO",
+      "first_frame": 1228,
+      "last_frame": 1264,
+      "start_time": 20.487133,
+      "end_time": 21.104417,
+      "position": [
+        264,
+        1223,
+        823,
+        1319
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9869
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "WATCH OUT",
+      "first_frame": 1265,
+      "last_frame": 1284,
+      "start_time": 21.104417,
+      "end_time": 21.438083,
+      "position": [
+        346,
+        1233,
+        747,
+        1316
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.971
+      },
+      "position_source": "paddleocr_target_frame"
+    },
+    {
+      "text": "FOR THE CLONES",
+      "first_frame": 1285,
+      "last_frame": 1301,
+      "start_time": 21.438083,
+      "end_time": 21.7217,
+      "position": [
+        269,
+        1236,
+        819,
+        1311
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9976
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "YOU HAVE",
+      "first_frame": 1302,
+      "last_frame": 1325,
+      "start_time": 21.7217,
+      "end_time": 22.1221,
+      "position": [
+        377,
+        1233,
+        720,
+        1316
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9998
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "ALSO",
+      "first_frame": 1326,
+      "last_frame": 1359,
+      "start_time": 22.1221,
+      "end_time": 22.689333,
+      "position": [
+        446,
+        1234,
+        638,
+        1310
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9996
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "WHEN YOU DIE",
+      "first_frame": 1360,
+      "last_frame": 1401,
+      "start_time": 22.689333,
+      "end_time": 23.390033,
+      "position": [
+        305,
+        1088,
+        789,
+        1168
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9922
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "ALL YOUR SHADOWS",
+      "first_frame": 1402,
+      "last_frame": 1446,
+      "start_time": 23.390033,
+      "end_time": 24.140783,
+      "position": [
+        199,
+        1084,
+        887,
+        1171
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9922
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "DISAPPEAR",
+      "first_frame": 1447,
+      "last_frame": 1468,
+      "start_time": 24.140783,
+      "end_time": 24.507817,
+      "position": [
+        347,
+        1081,
+        744,
+        1175
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.999
+      },
+      "position_source": "paddleocr_target_frame"
+    },
+    {
+      "text": "MOST OF THE TIME",
+      "first_frame": 1469,
+      "last_frame": 1533,
+      "start_time": 24.507817,
+      "end_time": 25.592233,
+      "position": [
+        242,
+        1230,
+        845,
+        1312
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9932
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "IT IS WORTH IT",
+      "first_frame": 1534,
+      "last_frame": 1572,
+      "start_time": 25.592233,
+      "end_time": 26.242883,
+      "position": [
+        302,
+        1228,
+        787,
+        1313
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9799
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "JUST TO HAVE IT",
+      "first_frame": 1573,
+      "last_frame": 1608,
+      "start_time": 26.242883,
+      "end_time": 26.843483,
+      "position": [
+        277,
+        1230,
+        812,
+        1312
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9857
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "ON YOURSELF",
+      "first_frame": 1609,
+      "last_frame": 1640,
+      "start_time": 26.843483,
+      "end_time": 27.37735,
+      "position": [
+        315,
+        1230,
+        778,
+        1311
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9891
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "AND DON'T",
+      "first_frame": 1641,
+      "last_frame": 1673,
+      "start_time": 27.37735,
+      "end_time": 27.9279,
+      "position": [
+        350,
+        1230,
+        735,
+        1315
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9385
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "USE THEM TO ATTACK",
+      "first_frame": 1674,
+      "last_frame": 1726,
+      "start_time": 27.9279,
+      "end_time": 28.812117,
+      "position": [
+        199,
+        1229,
+        894,
+        1313
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9979
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "JUST TO",
+      "first_frame": 1727,
+      "last_frame": 1770,
+      "start_time": 28.812117,
+      "end_time": 29.546183,
+      "position": [
+        405,
+        1226,
+        682,
+        1313
+      ],
+      "verification_tier": "A",
+      "boundary_uncertainty_frames": 0,
+      "confidence": {
+        "text": 1,
+        "boundary": 1,
+        "source_ocr": 0.9961
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "PROTECT YOURSELF",
+      "first_frame": 1771,
+      "last_frame": 1817,
+      "start_time": 29.546183,
+      "end_time": 30.3303,
+      "position": [
+        214,
+        1217,
+        877,
+        1318
+      ],
+      "verification_tier": "A",
+      "boundary_uncertainty_frames": 0,
+      "confidence": {
+        "text": 1,
+        "boundary": 1,
+        "source_ocr": 0.9701
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "FROM BRAWLERS",
+      "first_frame": 1818,
+      "last_frame": 1872,
+      "start_time": 30.3303,
+      "end_time": 31.247883,
+      "position": [
+        257,
+        1229,
+        832,
+        1316
+      ],
+      "verification_tier": "A",
+      "boundary_uncertainty_frames": 0,
+      "confidence": {
+        "text": 1,
+        "boundary": 1,
+        "source_ocr": 0.9812
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "LIKE MORTIS",
+      "first_frame": 1873,
+      "last_frame": 1917,
+      "start_time": 31.247883,
+      "end_time": 31.998633,
+      "position": [
+        335,
+        1232,
+        752,
+        1310
+      ],
+      "verification_tier": "A",
+      "boundary_uncertainty_frames": 0,
+      "confidence": {
+        "text": 1,
+        "boundary": 1,
+        "source_ocr": 0.9837
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "I WOULD SAY",
+      "first_frame": 1918,
+      "last_frame": 1953,
+      "start_time": 31.998633,
+      "end_time": 32.599233,
+      "position": [
+        323,
+        1227,
+        761,
+        1313
+      ],
+      "verification_tier": "A",
+      "boundary_uncertainty_frames": 0,
+      "confidence": {
+        "text": 1,
+        "boundary": 1,
+        "source_ocr": 0.9867
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "YOU CAN PLAY",
+      "first_frame": 1954,
+      "last_frame": 2002,
+      "start_time": 32.599233,
+      "end_time": 33.416717,
+      "position": [
+        303,
+        1230,
+        787,
+        1314
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9928
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "BASICALLY SIRIUS",
+      "first_frame": 2003,
+      "last_frame": 2051,
+      "start_time": 33.416717,
+      "end_time": 34.2342,
+      "position": [
+        253,
+        1224,
+        835,
+        1316
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9997
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "EVERYWHERE",
+      "first_frame": 2052,
+      "last_frame": 2076,
+      "start_time": 34.2342,
+      "end_time": 34.651283,
+      "position": [
+        313,
+        1226,
+        770,
+        1310
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9917
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "BECAUSE IT'S",
+      "first_frame": 2077,
+      "last_frame": 2117,
+      "start_time": 34.651283,
+      "end_time": 35.3353,
+      "position": [
+        330,
+        1234,
+        759,
+        1308
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9978
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "SO OP RIGHT NOW",
+      "first_frame": 2118,
+      "last_frame": 2175,
+      "start_time": 35.3353,
+      "end_time": 36.302933,
+      "position": [
+        236,
+        1232,
+        849,
+        1314
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9895
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "MAYBE NOT",
+      "first_frame": 2176,
+      "last_frame": 2212,
+      "start_time": 36.302933,
+      "end_time": 36.920217,
+      "position": [
+        352,
+        1236,
+        739,
+        1311
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9789
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "IN KNOCKOUT",
+      "first_frame": 2213,
+      "last_frame": 2255,
+      "start_time": 36.920217,
+      "end_time": 37.6376,
+      "position": [
+        311,
+        1233,
+        779,
+        1314
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9991
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "BUT ON MANY",
+      "first_frame": 2256,
+      "last_frame": 2306,
+      "start_time": 37.6376,
+      "end_time": 38.48845,
+      "position": [
+        311,
+        1234,
+        775,
+        1309
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9977
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "OTHER MAPS",
+      "first_frame": 2307,
+      "last_frame": 2335,
+      "start_time": 38.48845,
+      "end_time": 38.972267,
+      "position": [
+        332,
+        1238,
+        757,
+        1307
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9994
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    },
+    {
+      "text": "HE'S REALLY GOOD",
+      "first_frame": 2336,
+      "last_frame": 2379,
+      "start_time": 38.972267,
+      "end_time": 39.706333,
+      "position": [
+        234,
+        1236,
+        852,
+        1309
+      ],
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "confidence": {
+        "text": 1,
+        "boundary": 0.65,
+        "source_ocr": 0.9829
+      },
+      "position_source": "paddleocr_2fps_candidate"
+    }
+  ]
+}

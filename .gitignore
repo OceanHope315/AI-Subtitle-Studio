@@ -1,0 +1,35 @@
+# JavaScript
+**/node_modules/
+frontend/dist/
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+.venv/
+ai_service/.venv/
+.pytest_cache/
+
+# Local configuration
+**/.env
+**/.env.local
+!**/.env.example
+
+# Runtime data and logs
+backend/data/
+data/tasks.json
+data/videos/*
+!data/videos/.gitkeep
+data/jobs/*
+!data/jobs/.gitkeep
+data/e2e-logs/
+data/subtitles/*/
+!data/subtitles/test-video/
+!data/subtitles/test-video/*.json
+!data/subtitles/test-video/*.srt
+*.log
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

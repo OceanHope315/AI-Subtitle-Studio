@@ -1,0 +1,898 @@
+{
+  "version": 1,
+  "roi": {
+    "x": 0.08,
+    "y": 0.52,
+    "width": 0.84,
+    "height": 0.24
+  },
+  "roi_source": "manual",
+  "video": {
+    "width": 1080,
+    "height": 1920,
+    "source_fps": 59.94007671322423,
+    "frame_count": 2380,
+    "duration": 39.70632222222222
+  },
+  "sampling": {
+    "sample_fps": 2.0,
+    "coarse_observation_count": 158,
+    "coarse_event_count": 84
+  },
+  "boundary_refinement": {
+    "enabled": true,
+    "ocr_budget_per_boundary": 2,
+    "new_ocr_call_count": 137
+  },
+  "short_event_discovery": {
+    "enabled": true,
+    "global_ocr_budget": 24,
+    "new_ocr_call_count": 20
+  },
+  "final_ocr_event_count": 57,
+  "events": [
+    {
+      "id": "f33240ee-7dd8-4afc-b802-0e22db544bcc",
+      "text": "HOW TO PLAY\nSIRIUS",
+      "start_time": 0.5,
+      "end_time": 2.786,
+      "start_frame": 30,
+      "end_frame": 166,
+      "confidence": 0.9917,
+      "position": [
+        120,
+        1055,
+        949,
+        1359
+      ]
+    },
+    {
+      "id": "7388ac47-f3ed-4e3d-8027-02833957427b",
+      "text": "THE BUILD IS",
+      "start_time": 2.419,
+      "end_time": 3.32,
+      "start_frame": 145,
+      "end_frame": 199,
+      "confidence": 0.986,
+      "position": [
+        336,
+        1232,
+        756,
+        1313
+      ]
+    },
+    {
+      "id": "f6a6812b-6137-420e-8cd3-071e7595811e",
+      "text": "THE FIRST GADGET",
+      "start_time": 3.32,
+      "end_time": 4.171,
+      "start_frame": 199,
+      "end_frame": 250,
+      "confidence": 0.9874,
+      "position": [
+        240,
+        1232,
+        850,
+        1312
+      ]
+    },
+    {
+      "id": "e5c11c7c-5d60-4a77-ad9d-1ab40737ef7b",
+      "text": "AND THE",
+      "start_time": 4.171,
+      "end_time": 4.805,
+      "start_frame": 250,
+      "end_frame": 288,
+      "confidence": 0.9283,
+      "position": [
+        391,
+        1233,
+        697,
+        1312
+      ]
+    },
+    {
+      "id": "faf81957-66ea-4c44-b805-be70fbba8dea",
+      "text": "SECOND STARPOWER",
+      "start_time": 4.805,
+      "end_time": 5.606,
+      "start_frame": 288,
+      "end_frame": 336,
+      "confidence": 0.9903,
+      "position": [
+        197,
+        1235,
+        889,
+        1310
+      ]
+    },
+    {
+      "id": "daca9a6f-2480-4e3e-8331-4c2043a67f38",
+      "text": "BASICALLY",
+      "start_time": 5.606,
+      "end_time": 6.24,
+      "start_frame": 336,
+      "end_frame": 374,
+      "confidence": 0.9999,
+      "position": [
+        359,
+        1228,
+        726,
+        1315
+      ]
+    },
+    {
+      "id": "e9ec30a3-d1ac-4e73-be0e-e6757d6a4250",
+      "text": "YOU HAVE TO",
+      "start_time": 6.24,
+      "end_time": 7.107,
+      "start_frame": 374,
+      "end_frame": 425,
+      "confidence": 0.9689,
+      "position": [
+        323,
+        1230,
+        767,
+        1316
+      ]
+    },
+    {
+      "id": "21057d87-d385-4536-a156-4ba7e24eac8b",
+      "text": "USE THE GADGET",
+      "start_time": 7.107,
+      "end_time": 7.708,
+      "start_frame": 426,
+      "end_frame": 462,
+      "confidence": 0.9825,
+      "position": [
+        266,
+        1232,
+        825,
+        1312
+      ]
+    },
+    {
+      "id": "2a7b9ac5-dc79-4b44-b58b-f224c3888ce1",
+      "text": "TO SLOW THEM",
+      "start_time": 7.708,
+      "end_time": 8.308,
+      "start_frame": 462,
+      "end_frame": 497,
+      "confidence": 0.9837,
+      "position": [
+        293,
+        1228,
+        798,
+        1317
+      ]
+    },
+    {
+      "id": "2ba6787d-e42e-4efd-bc6b-957ee036c352",
+      "text": "AND",
+      "start_time": 8.308,
+      "end_time": 8.575,
+      "start_frame": 498,
+      "end_frame": 513,
+      "confidence": 0.9999,
+      "position": [
+        457,
+        1233,
+        625,
+        1314
+      ]
+    },
+    {
+      "id": "dd71b667-3286-4718-8ebc-0303bc070b88",
+      "text": "JUST 3-TAP THEM",
+      "start_time": 8.575,
+      "end_time": 10.009,
+      "start_frame": 514,
+      "end_frame": 599,
+      "confidence": 0.9913,
+      "position": [
+        257,
+        1230,
+        831,
+        1316
+      ]
+    },
+    {
+      "id": "b4028313-e15e-4620-9cb1-3f628026fc9a",
+      "text": "THE SECOND STARPOWER",
+      "start_time": 9.693,
+      "end_time": 10.561,
+      "start_frame": 581,
+      "end_frame": 633,
+      "confidence": 0.9934,
+      "position": [
+        132,
+        1232,
+        959,
+        1313
+      ]
+    },
+    {
+      "id": "48557d0e-256d-4e14-946a-579878edb319",
+      "text": "IS REALLY GOOD TO",
+      "start_time": 10.561,
+      "end_time": 11.011,
+      "start_frame": 633,
+      "end_frame": 660,
+      "confidence": 0.9966,
+      "position": [
+        221,
+        1226,
+        867,
+        1319
+      ]
+    },
+    {
+      "id": "5cb2629e-b969-4699-a59e-2be92c254bcc",
+      "text": "ADD MORE SHADOWS",
+      "start_time": 11.011,
+      "end_time": 12.045,
+      "start_frame": 660,
+      "end_frame": 721,
+      "confidence": 0.9864,
+      "position": [
+        188,
+        1229,
+        898,
+        1315
+      ]
+    },
+    {
+      "id": "58a3d20a-0083-4dda-905a-2bed66c4be2c",
+      "text": "YOUDON'T HAVE",
+      "start_time": 12.045,
+      "end_time": 12.829,
+      "start_frame": 722,
+      "end_frame": 768,
+      "confidence": 0.9962,
+      "position": [
+        267,
+        1229,
+        828,
+        1316
+      ]
+    },
+    {
+      "id": "d01160f1-5d04-420d-a1ce-58d5cadce9ea",
+      "text": "TO USE THEM",
+      "start_time": 12.829,
+      "end_time": 13.313,
+      "start_frame": 769,
+      "end_frame": 797,
+      "confidence": 0.9537,
+      "position": [
+        327,
+        1230,
+        764,
+        1315
+      ]
+    },
+    {
+      "id": "0b803321-d047-4f90-93cf-8d1b658fb36b",
+      "text": "EVERYTIME",
+      "start_time": 13.313,
+      "end_time": 13.914,
+      "start_frame": 798,
+      "end_frame": 834,
+      "confidence": 0.9996,
+      "position": [
+        346,
+        1234,
+        743,
+        1315
+      ]
+    },
+    {
+      "id": "84eae690-b593-4437-b143-932c6ed01ff9",
+      "text": "YOU HAVE",
+      "start_time": 13.914,
+      "end_time": 14.248,
+      "start_frame": 834,
+      "end_frame": 854,
+      "confidence": 0.9607,
+      "position": [
+        374,
+        1232,
+        720,
+        1315
+      ]
+    },
+    {
+      "id": "3255d63a-1f65-46e2-8a57-107e8820c031",
+      "text": "TO WATCH OUT",
+      "start_time": 14.248,
+      "end_time": 14.698,
+      "start_frame": 854,
+      "end_frame": 880,
+      "confidence": 0.9659,
+      "position": [
+        292,
+        1230,
+        798,
+        1318
+      ]
+    },
+    {
+      "id": "f7d0f397-bdb6-4e65-b1a3-4c129c14eea2",
+      "text": "BECAUSE FOR EXAMPLE",
+      "start_time": 14.698,
+      "end_time": 15.382,
+      "start_frame": 881,
+      "end_frame": 921,
+      "confidence": 0.9879,
+      "position": [
+        160,
+        1231,
+        929,
+        1315
+      ]
+    },
+    {
+      "id": "104e7053-74a3-45ef-8642-ec3487eada72",
+      "text": "INBRAWL BALL",
+      "start_time": 15.382,
+      "end_time": 15.999,
+      "start_frame": 922,
+      "end_frame": 958,
+      "confidence": 0.9865,
+      "position": [
+        285,
+        1229,
+        798,
+        1319
+      ]
+    },
+    {
+      "id": "11b0a4d6-5436-409c-82e5-f8944a96cb92",
+      "text": "IF YOU ARE LIKE",
+      "start_time": 16.016,
+      "end_time": 16.65,
+      "start_frame": 960,
+      "end_frame": 998,
+      "confidence": 0.997,
+      "position": [
+        283,
+        1228,
+        809,
+        1317
+      ]
+    },
+    {
+      "id": "21862a9b-7472-4097-a2b7-b9286562e7dd",
+      "text": "ONE-SHOT TO GET",
+      "start_time": 16.65,
+      "end_time": 17.517,
+      "start_frame": 998,
+      "end_frame": 1049,
+      "confidence": 0.9971,
+      "position": [
+        239,
+        1231,
+        850,
+        1314
+      ]
+    },
+    {
+      "id": "f177cb18-8d83-48b8-b17e-d5e05bbe9c10",
+      "text": "SHADOW AND",
+      "start_time": 17.134,
+      "end_time": 18.017,
+      "start_frame": 1027,
+      "end_frame": 1079,
+      "confidence": 0.9761,
+      "position": [
+        306,
+        1232,
+        779,
+        1313
+      ]
+    },
+    {
+      "id": "38683962-4147-42ad-b8f8-80364f258669",
+      "text": "SOMEONE IS SCORING",
+      "start_time": 18.018,
+      "end_time": 18.518,
+      "start_frame": 1080,
+      "end_frame": 1109,
+      "confidence": 0.9991,
+      "position": [
+        186,
+        1229,
+        899,
+        1314
+      ]
+    },
+    {
+      "id": "a190c44e-34d8-4025-a696-6d90500ea77a",
+      "text": "AGOAL",
+      "start_time": 18.518,
+      "end_time": 19.018,
+      "start_frame": 1110,
+      "end_frame": 1139,
+      "confidence": 0.9999,
+      "position": [
+        406,
+        1230,
+        677,
+        1315
+      ]
+    },
+    {
+      "id": "a9bec2ed-783f-4b24-9825-2ddb39d3277c",
+      "text": "THAT BAR IS",
+      "start_time": 19.019,
+      "end_time": 19.77,
+      "start_frame": 1140,
+      "end_frame": 1185,
+      "confidence": 0.9902,
+      "position": [
+        341,
+        1229,
+        750,
+        1316
+      ]
+    },
+    {
+      "id": "bbef1973-448a-4441-9d5a-22e28da220aa",
+      "text": "GOING TO DISAPPEAR",
+      "start_time": 19.77,
+      "end_time": 20.487,
+      "start_frame": 1185,
+      "end_frame": 1227,
+      "confidence": 0.9909,
+      "position": [
+        187,
+        1226,
+        908,
+        1317
+      ]
+    },
+    {
+      "id": "4167634e-0085-46c1-b293-1fdc6e27a405",
+      "text": "SO YOU HAVE TO",
+      "start_time": 20.487,
+      "end_time": 21.104,
+      "start_frame": 1228,
+      "end_frame": 1264,
+      "confidence": 0.99,
+      "position": [
+        265,
+        1228,
+        820,
+        1317
+      ]
+    },
+    {
+      "id": "1dd1b736-d93d-4530-b4a4-b86716c573a9",
+      "text": "WATCH OUT",
+      "start_time": 21.104,
+      "end_time": 21.438,
+      "start_frame": 1265,
+      "end_frame": 1284,
+      "confidence": 0.9988,
+      "position": [
+        347,
+        1233,
+        746,
+        1315
+      ]
+    },
+    {
+      "id": "ea5c888a-2b09-424d-9530-ee7df6286694",
+      "text": "FOR THE CLONES",
+      "start_time": 21.438,
+      "end_time": 21.722,
+      "start_frame": 1285,
+      "end_frame": 1302,
+      "confidence": 0.9931,
+      "position": [
+        267,
+        1232,
+        821,
+        1314
+      ]
+    },
+    {
+      "id": "541b9205-d549-4cde-a495-9072a73b7713",
+      "text": "YOUHAVE",
+      "start_time": 21.722,
+      "end_time": 22.122,
+      "start_frame": 1302,
+      "end_frame": 1325,
+      "confidence": 0.9999,
+      "position": [
+        374,
+        1231,
+        721,
+        1319
+      ]
+    },
+    {
+      "id": "c5d9f71c-3ac5-4f8b-b2e9-bc62b6bb0a0d",
+      "text": "ALSO",
+      "start_time": 22.122,
+      "end_time": 22.689,
+      "start_frame": 1326,
+      "end_frame": 1359,
+      "confidence": 0.9997,
+      "position": [
+        447,
+        1234,
+        639,
+        1310
+      ]
+    },
+    {
+      "id": "feaf354c-1eba-44a3-88f5-82c2277df2dd",
+      "text": "WHEN YOU DIE",
+      "start_time": 22.689,
+      "end_time": 23.39,
+      "start_frame": 1360,
+      "end_frame": 1401,
+      "confidence": 0.9809,
+      "position": [
+        302,
+        1086,
+        790,
+        1168
+      ]
+    },
+    {
+      "id": "ac9a9bc9-a489-422a-8028-eee8e829f352",
+      "text": "ALL YOUR SHADOWS",
+      "start_time": 23.39,
+      "end_time": 24.141,
+      "start_frame": 1402,
+      "end_frame": 1447,
+      "confidence": 0.9935,
+      "position": [
+        199,
+        1084,
+        887,
+        1171
+      ]
+    },
+    {
+      "id": "c9e7d4b7-d215-4817-9c50-d7693d2c3b8d",
+      "text": "DISAPPEAR",
+      "start_time": 24.141,
+      "end_time": 24.508,
+      "start_frame": 1447,
+      "end_frame": 1469,
+      "confidence": 0.9993,
+      "position": [
+        347,
+        1083,
+        741,
+        1172
+      ]
+    },
+    {
+      "id": "903ff8c5-c9f2-4dda-8998-41c7bb0d7c0f",
+      "text": "MOST OF THE TIME",
+      "start_time": 24.508,
+      "end_time": 25.592,
+      "start_frame": 1469,
+      "end_frame": 1533,
+      "confidence": 0.9986,
+      "position": [
+        241,
+        1229,
+        848,
+        1316
+      ]
+    },
+    {
+      "id": "08b8fda4-a02d-4152-a193-50db9b0eccc8",
+      "text": "IT IS WORTH IT",
+      "start_time": 25.592,
+      "end_time": 26.243,
+      "start_frame": 1534,
+      "end_frame": 1573,
+      "confidence": 0.9923,
+      "position": [
+        300,
+        1229,
+        786,
+        1315
+      ]
+    },
+    {
+      "id": "2f27df6e-1a97-47e6-acbe-c29f7e79ca40",
+      "text": "JUST TO HAVE IT",
+      "start_time": 26.243,
+      "end_time": 26.843,
+      "start_frame": 1573,
+      "end_frame": 1608,
+      "confidence": 0.9994,
+      "position": [
+        274,
+        1227,
+        814,
+        1318
+      ]
+    },
+    {
+      "id": "22bc4fb8-b17c-4c61-81de-ef825d7740ca",
+      "text": "ON YOURSELF",
+      "start_time": 26.843,
+      "end_time": 27.377,
+      "start_frame": 1609,
+      "end_frame": 1640,
+      "confidence": 0.9968,
+      "position": [
+        312,
+        1226,
+        781,
+        1316
+      ]
+    },
+    {
+      "id": "135764ce-ab58-4b4d-9792-961528fd5049",
+      "text": "AND DON'T",
+      "start_time": 27.377,
+      "end_time": 27.928,
+      "start_frame": 1641,
+      "end_frame": 1674,
+      "confidence": 0.9973,
+      "position": [
+        347,
+        1223,
+        741,
+        1319
+      ]
+    },
+    {
+      "id": "ed8941e0-fdfd-4e74-bd32-5de93de7203f",
+      "text": "USE THEM TO ATTACK",
+      "start_time": 27.928,
+      "end_time": 28.812,
+      "start_frame": 1674,
+      "end_frame": 1726,
+      "confidence": 0.9819,
+      "position": [
+        199,
+        1230,
+        893,
+        1315
+      ]
+    },
+    {
+      "id": "06a5649b-9dff-4d27-8245-f98c23f8ef39",
+      "text": "JUST TO",
+      "start_time": 28.812,
+      "end_time": 29.546,
+      "start_frame": 1727,
+      "end_frame": 1770,
+      "confidence": 0.9982,
+      "position": [
+        402,
+        1227,
+        684,
+        1315
+      ]
+    },
+    {
+      "id": "ad7bac3d-e5b1-4bad-a098-bf51546dfbf4",
+      "text": "PROTECT YOURSELF",
+      "start_time": 29.546,
+      "end_time": 30.33,
+      "start_frame": 1771,
+      "end_frame": 1817,
+      "confidence": 0.9974,
+      "position": [
+        216,
+        1226,
+        875,
+        1318
+      ]
+    },
+    {
+      "id": "90fc7d61-e700-4307-af3f-cedc9e6bc0b9",
+      "text": "FROM BRAWLERS",
+      "start_time": 30.33,
+      "end_time": 31.248,
+      "start_frame": 1818,
+      "end_frame": 1873,
+      "confidence": 0.9981,
+      "position": [
+        257,
+        1227,
+        832,
+        1316
+      ]
+    },
+    {
+      "id": "3d80e296-d39c-4424-89c3-b849b01454b4",
+      "text": "LIKE MORTIS",
+      "start_time": 31.248,
+      "end_time": 31.999,
+      "start_frame": 1873,
+      "end_frame": 1918,
+      "confidence": 0.9937,
+      "position": [
+        334,
+        1229,
+        755,
+        1314
+      ]
+    },
+    {
+      "id": "5633953f-960b-4970-9b9d-5cbb56b74a37",
+      "text": "I WOULD SAY",
+      "start_time": 31.999,
+      "end_time": 32.599,
+      "start_frame": 1918,
+      "end_frame": 1953,
+      "confidence": 0.9638,
+      "position": [
+        318,
+        1217,
+        766,
+        1319
+      ]
+    },
+    {
+      "id": "f92516e4-9acd-42d2-a6f4-8b68dc8aec15",
+      "text": "YOUCAN PLAY",
+      "start_time": 32.599,
+      "end_time": 33.533,
+      "start_frame": 1954,
+      "end_frame": 2009,
+      "confidence": 0.9919,
+      "position": [
+        301,
+        1228,
+        792,
+        1322
+      ]
+    },
+    {
+      "id": "c9346faa-f30e-4fed-aa74-a78b28152ec1",
+      "text": "BASICALLY SIRIUS",
+      "start_time": 34.034,
+      "end_time": 34.534,
+      "start_frame": 2040,
+      "end_frame": 2069,
+      "confidence": 0.9996,
+      "position": [
+        251,
+        1224,
+        836,
+        1319
+      ]
+    },
+    {
+      "id": "426e2186-dd01-40ff-9774-a7a07652c47d",
+      "text": "EVERYWHERE",
+      "start_time": 34.201,
+      "end_time": 34.651,
+      "start_frame": 2050,
+      "end_frame": 2076,
+      "confidence": 0.9982,
+      "position": [
+        318,
+        1234,
+        772,
+        1307
+      ]
+    },
+    {
+      "id": "be34497f-5686-4308-aeaf-025b4a320cfa",
+      "text": "BECAUSE IT'S",
+      "start_time": 34.651,
+      "end_time": 35.335,
+      "start_frame": 2077,
+      "end_frame": 2117,
+      "confidence": 0.9965,
+      "position": [
+        321,
+        1228,
+        769,
+        1328
+      ]
+    },
+    {
+      "id": "b6e3e4a4-5b55-4373-9515-ee28a4d8e958",
+      "text": "SOOP RIGHT NOW",
+      "start_time": 35.335,
+      "end_time": 36.303,
+      "start_frame": 2118,
+      "end_frame": 2176,
+      "confidence": 0.9848,
+      "position": [
+        241,
+        1232,
+        846,
+        1313
+      ]
+    },
+    {
+      "id": "19467490-8bc8-4b3d-8a94-adbb9da3936d",
+      "text": "MAYBE NOT",
+      "start_time": 36.303,
+      "end_time": 36.92,
+      "start_frame": 2176,
+      "end_frame": 2212,
+      "confidence": 0.9717,
+      "position": [
+        348,
+        1232,
+        742,
+        1314
+      ]
+    },
+    {
+      "id": "1f66413f-b87e-417e-9558-06165ffe09a0",
+      "text": "INKNOCKOUT",
+      "start_time": 36.92,
+      "end_time": 38.037,
+      "start_frame": 2213,
+      "end_frame": 2279,
+      "confidence": 0.9987,
+      "position": [
+        310,
+        1229,
+        778,
+        1313
+      ]
+    },
+    {
+      "id": "c986ec56-785a-494e-9075-f949e7c55906",
+      "text": "BUTONMANY",
+      "start_time": 37.621,
+      "end_time": 38.488,
+      "start_frame": 2255,
+      "end_frame": 2306,
+      "confidence": 0.9994,
+      "position": [
+        307,
+        1228,
+        778,
+        1317
+      ]
+    },
+    {
+      "id": "224993cc-856c-42ff-ac91-c8b89bcce381",
+      "text": "OTHERMAPS",
+      "start_time": 38.488,
+      "end_time": 38.972,
+      "start_frame": 2307,
+      "end_frame": 2335,
+      "confidence": 0.9995,
+      "position": [
+        329,
+        1233,
+        760,
+        1314
+      ]
+    },
+    {
+      "id": "afc2c8e5-b9f0-4662-920e-597a5f77f453",
+      "text": "HE'S REALLY GOOD",
+      "start_time": 38.972,
+      "end_time": 39.706,
+      "start_frame": 2336,
+      "end_frame": 2379,
+      "confidence": 0.9914,
+      "position": [
+        231,
+        1230,
+        855,
+        1315
+      ]
+    }
+  ],
+  "temporal_competition_validation": {
+    "replayed_after_full_inference": true,
+    "removed_event_count": 2,
+    "removed_event_ids": [
+      "08e0b109-05ce-4f6a-a0a6-cc315d35a865",
+      "aff2a583-707f-46c3-b29f-7099f606a5d1"
+    ]
+  }
+}

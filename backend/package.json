@@ -1,0 +1,30 @@
+{
+  "name": "ai-subtitle-studio-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Express API and task orchestration for AI Subtitle Studio",
+  "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test --test-concurrency=1",
+    "test:watch": "node --test --watch --test-concurrency=1"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "form-data": "^4.0.1",
+    "helmet": "^8.0.0",
+    "mongoose": "^8.9.5",
+    "multer": "^2.2.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}

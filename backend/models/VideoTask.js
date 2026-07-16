@@ -1,0 +1,57 @@
+import mongoose from "mongoose";
+
+const subtitleSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    text: { type: String, default: "" },
+    start_time: { type: Number, required: true, min: 0 },
+    end_time: { type: Number, required: true, min: 0 },
+    confidence: { type: Number, min: 0, max: 1, default: null },
+    position: { type: mongoose.Schema.Types.Mixed, default: null },
+    source: { type: String, default: null },
+  },
+  { _id: false },
+);
+
+const roiSchema = new mongoose.Schema(
+  {
+    x: { type: Number, required: true, min: 0, max: 1 },
+    y: { type: Number, required: true, min: 0, max: 1 },
+    width: { type: Number, required: true, min: 0.01, max: 1 },
+    height: { type: Number, required: true, min: 0.01, max: 1 },
+  },
+  { _id: false },
+);
+
+export const videoTaskSchema = new mongoose.Schema(
+  {
+    taskId: { type: String, required: true, unique: true, index: true },
+    filename: { type: String, required: true },
+    storedFilename: { type: String, required: true },
+    videoPath: { type: String, required: true },
+    status: {
+      type: String,
+      required: true,
+      enum: ["awaiting_roi", "queued", "processing", "completed", "failed"],
+      default: "awaiting_roi",
+      index: true,
+    },
+    roi: { type: roiSchema, default: null },
+    progress: { type: Number, min: 0, max: 100, default: 0 },
+    message: { type: String, default: null },
+    metadata: { type: mongoose.Schema.Types.Mixed, default: {} },
+    subtitles: { type: [subtitleSchema], default: [] },
+    error: { type: String, default: null },
+    artifacts: { type: mongoose.Schema.Types.Mixed, default: {} },
+    aiJobId: { type: String, default: null },
+  },
+  {
+    timestamps: true,
+    minimize: false,
+    versionKey: false,
+  },
+);
+
+export function getVideoTaskModel(connection) {
+  return connection.models.VideoTask || connection.model("VideoTask", videoTaskSchema);
+}

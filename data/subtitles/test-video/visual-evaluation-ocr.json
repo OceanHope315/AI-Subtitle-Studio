@@ -1,0 +1,2697 @@
+{
+  "schema_version": 1,
+  "ground_truth": "D:\\AI-Subtitle-Studio\\data\\ground_truth\\test-video.visual.json",
+  "prediction": "D:\\AI-Subtitle-Studio\\data\\subtitles\\test-video\\ocr_events.json",
+  "fps": 59.94005994005994,
+  "settings": {
+    "text_threshold": 0.72,
+    "merge_simultaneous_multiline": true
+  },
+  "counts": {
+    "truth": 58,
+    "prediction": 57,
+    "evaluated_prediction": 57,
+    "multiline_groups_merged": 0,
+    "matched": 57,
+    "false_positive": 0,
+    "false_negative": 1
+  },
+  "detection": {
+    "precision": 1.0,
+    "recall": 0.982759,
+    "f1": 0.991304
+  },
+  "text": {
+    "normalized_exact_count": 57,
+    "normalized_exact_rate": 1.0,
+    "mean_similarity": 1.0,
+    "minimum_similarity": 1.0
+  },
+  "boundaries": {
+    "start_frame_mae": 1.052632,
+    "end_frame_mae": 2.052632,
+    "start_seconds_mae": 0.017561,
+    "end_seconds_mae": 0.034245,
+    "within_truth_uncertainty_count": 53,
+    "within_truth_uncertainty_rate": 0.929825
+  },
+  "tier_a": {
+    "truth_count": 5,
+    "matched_count": 5,
+    "exact_start_count": 5,
+    "exact_end_count": 5,
+    "exact_both_count": 5,
+    "start_frame_mae": 0.0,
+    "end_frame_mae": 0.0,
+    "passed": true,
+    "events": [
+      {
+        "truth_index": 43,
+        "truth_text": "JUST TO",
+        "prediction_index": 42,
+        "prediction_text": "JUST TO",
+        "matched": true,
+        "exact_start": true,
+        "exact_end": true,
+        "exact_both": true,
+        "start_error_frames": 0,
+        "end_error_frames": 0
+      },
+      {
+        "truth_index": 44,
+        "truth_text": "PROTECT YOURSELF",
+        "prediction_index": 43,
+        "prediction_text": "PROTECT YOURSELF",
+        "matched": true,
+        "exact_start": true,
+        "exact_end": true,
+        "exact_both": true,
+        "start_error_frames": 0,
+        "end_error_frames": 0
+      },
+      {
+        "truth_index": 45,
+        "truth_text": "FROM BRAWLERS",
+        "prediction_index": 44,
+        "prediction_text": "FROM BRAWLERS",
+        "matched": true,
+        "exact_start": true,
+        "exact_end": true,
+        "exact_both": true,
+        "start_error_frames": 0,
+        "end_error_frames": 0
+      },
+      {
+        "truth_index": 46,
+        "truth_text": "LIKE MORTIS",
+        "prediction_index": 45,
+        "prediction_text": "LIKE MORTIS",
+        "matched": true,
+        "exact_start": true,
+        "exact_end": true,
+        "exact_both": true,
+        "start_error_frames": 0,
+        "end_error_frames": 0
+      },
+      {
+        "truth_index": 47,
+        "truth_text": "I WOULD SAY",
+        "prediction_index": 46,
+        "prediction_text": "I WOULD SAY",
+        "matched": true,
+        "exact_start": true,
+        "exact_end": true,
+        "exact_both": true,
+        "start_error_frames": 0,
+        "end_error_frames": 0
+      }
+    ]
+  },
+  "matches": [
+    {
+      "truth": {
+        "index": 1,
+        "source_indices": [
+          1
+        ],
+        "text": "HOW TO PLAY / SIRIUS",
+        "start_frame": 22,
+        "end_frame": 143,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          126.0,
+          1080.0,
+          957.0,
+          1349.0
+        ]
+      },
+      "prediction": {
+        "index": 0,
+        "source_indices": [
+          0
+        ],
+        "text": "HOW TO PLAY\nSIRIUS",
+        "start_frame": 30,
+        "end_frame": 166,
+        "position": [
+          120.0,
+          1055.0,
+          949.0,
+          1359.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "how to play sirius",
+        "prediction_normalized": "how to play sirius"
+      },
+      "boundary": {
+        "start_error_frames": 8,
+        "end_error_frames": 23,
+        "temporal_iou": 0.786207
+      }
+    },
+    {
+      "truth": {
+        "index": 2,
+        "source_indices": [
+          2
+        ],
+        "text": "THE BUILD IS",
+        "start_frame": 149,
+        "end_frame": 198,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          334.0,
+          1227.0,
+          763.0,
+          1318.0
+        ]
+      },
+      "prediction": {
+        "index": 1,
+        "source_indices": [
+          1
+        ],
+        "text": "THE BUILD IS",
+        "start_frame": 145,
+        "end_frame": 198,
+        "position": [
+          336.0,
+          1232.0,
+          756.0,
+          1313.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "the build is",
+        "prediction_normalized": "the build is"
+      },
+      "boundary": {
+        "start_error_frames": -4,
+        "end_error_frames": 0,
+        "temporal_iou": 0.925926
+      }
+    },
+    {
+      "truth": {
+        "index": 3,
+        "source_indices": [
+          3
+        ],
+        "text": "THE FIRST GADGET",
+        "start_frame": 199,
+        "end_frame": 249,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          236.0,
+          1226.0,
+          850.0,
+          1323.0
+        ]
+      },
+      "prediction": {
+        "index": 2,
+        "source_indices": [
+          2
+        ],
+        "text": "THE FIRST GADGET",
+        "start_frame": 199,
+        "end_frame": 249,
+        "position": [
+          240.0,
+          1232.0,
+          850.0,
+          1312.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "the first gadget",
+        "prediction_normalized": "the first gadget"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 4,
+        "source_indices": [
+          4
+        ],
+        "text": "AND THE",
+        "start_frame": 250,
+        "end_frame": 287,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          390.0,
+          1234.0,
+          692.0,
+          1310.0
+        ]
+      },
+      "prediction": {
+        "index": 3,
+        "source_indices": [
+          3
+        ],
+        "text": "AND THE",
+        "start_frame": 250,
+        "end_frame": 287,
+        "position": [
+          391.0,
+          1233.0,
+          697.0,
+          1312.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "and the",
+        "prediction_normalized": "and the"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 5,
+        "source_indices": [
+          5
+        ],
+        "text": "SECOND STARPOWER",
+        "start_frame": 288,
+        "end_frame": 335,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          198.0,
+          1238.0,
+          887.0,
+          1309.0
+        ]
+      },
+      "prediction": {
+        "index": 4,
+        "source_indices": [
+          4
+        ],
+        "text": "SECOND STARPOWER",
+        "start_frame": 288,
+        "end_frame": 335,
+        "position": [
+          197.0,
+          1235.0,
+          889.0,
+          1310.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "second starpower",
+        "prediction_normalized": "second starpower"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 6,
+        "source_indices": [
+          6
+        ],
+        "text": "BASICALLY",
+        "start_frame": 336,
+        "end_frame": 373,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          363.0,
+          1235.0,
+          724.0,
+          1309.0
+        ]
+      },
+      "prediction": {
+        "index": 5,
+        "source_indices": [
+          5
+        ],
+        "text": "BASICALLY",
+        "start_frame": 336,
+        "end_frame": 373,
+        "position": [
+          359.0,
+          1228.0,
+          726.0,
+          1315.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "basically",
+        "prediction_normalized": "basically"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 7,
+        "source_indices": [
+          7
+        ],
+        "text": "YOU HAVE TO",
+        "start_frame": 374,
+        "end_frame": 425,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          325.0,
+          1233.0,
+          767.0,
+          1313.0
+        ]
+      },
+      "prediction": {
+        "index": 6,
+        "source_indices": [
+          6
+        ],
+        "text": "YOU HAVE TO",
+        "start_frame": 374,
+        "end_frame": 425,
+        "position": [
+          323.0,
+          1230.0,
+          767.0,
+          1316.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "you have to",
+        "prediction_normalized": "you have to"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 8,
+        "source_indices": [
+          8
+        ],
+        "text": "USE THE GADGET",
+        "start_frame": 426,
+        "end_frame": 461,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          260.0,
+          1226.0,
+          824.0,
+          1320.0
+        ]
+      },
+      "prediction": {
+        "index": 7,
+        "source_indices": [
+          7
+        ],
+        "text": "USE THE GADGET",
+        "start_frame": 426,
+        "end_frame": 461,
+        "position": [
+          266.0,
+          1232.0,
+          825.0,
+          1312.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "use the gadget",
+        "prediction_normalized": "use the gadget"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 9,
+        "source_indices": [
+          9
+        ],
+        "text": "TO SLOW THEM",
+        "start_frame": 462,
+        "end_frame": 497,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          296.0,
+          1232.0,
+          797.0,
+          1312.0
+        ]
+      },
+      "prediction": {
+        "index": 8,
+        "source_indices": [
+          8
+        ],
+        "text": "TO SLOW THEM",
+        "start_frame": 462,
+        "end_frame": 497,
+        "position": [
+          293.0,
+          1228.0,
+          798.0,
+          1317.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "to slow them",
+        "prediction_normalized": "to slow them"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 10,
+        "source_indices": [
+          10
+        ],
+        "text": "AND",
+        "start_frame": 498,
+        "end_frame": 513,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          459.0,
+          1232.0,
+          626.0,
+          1314.0
+        ]
+      },
+      "prediction": {
+        "index": 9,
+        "source_indices": [
+          9
+        ],
+        "text": "AND",
+        "start_frame": 498,
+        "end_frame": 513,
+        "position": [
+          457.0,
+          1233.0,
+          625.0,
+          1314.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "and",
+        "prediction_normalized": "and"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 11,
+        "source_indices": [
+          11
+        ],
+        "text": "JUST 3-TAP THEM",
+        "start_frame": 514,
+        "end_frame": 583,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          256.0,
+          1230.0,
+          835.0,
+          1315.0
+        ]
+      },
+      "prediction": {
+        "index": 10,
+        "source_indices": [
+          10
+        ],
+        "text": "JUST 3-TAP THEM",
+        "start_frame": 514,
+        "end_frame": 599,
+        "position": [
+          257.0,
+          1230.0,
+          831.0,
+          1316.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "just 3 tap them",
+        "prediction_normalized": "just 3 tap them"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 16,
+        "temporal_iou": 0.813953
+      }
+    },
+    {
+      "truth": {
+        "index": 12,
+        "source_indices": [
+          12
+        ],
+        "text": "THE SECOND STARPOWER",
+        "start_frame": 584,
+        "end_frame": 632,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          133.0,
+          1232.0,
+          960.0,
+          1312.0
+        ]
+      },
+      "prediction": {
+        "index": 11,
+        "source_indices": [
+          11
+        ],
+        "text": "THE SECOND STARPOWER",
+        "start_frame": 581,
+        "end_frame": 632,
+        "position": [
+          132.0,
+          1232.0,
+          959.0,
+          1313.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "the second starpower",
+        "prediction_normalized": "the second starpower"
+      },
+      "boundary": {
+        "start_error_frames": -3,
+        "end_error_frames": 0,
+        "temporal_iou": 0.942308
+      }
+    },
+    {
+      "truth": {
+        "index": 13,
+        "source_indices": [
+          13
+        ],
+        "text": "IS REALLY GOOD TO",
+        "start_frame": 633,
+        "end_frame": 659,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          222.0,
+          1228.0,
+          868.0,
+          1317.0
+        ]
+      },
+      "prediction": {
+        "index": 12,
+        "source_indices": [
+          12
+        ],
+        "text": "IS REALLY GOOD TO",
+        "start_frame": 633,
+        "end_frame": 659,
+        "position": [
+          221.0,
+          1226.0,
+          867.0,
+          1319.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "is really good to",
+        "prediction_normalized": "is really good to"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 14,
+        "source_indices": [
+          14
+        ],
+        "text": "ADD MORE SHADOWS",
+        "start_frame": 660,
+        "end_frame": 721,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          187.0,
+          1229.0,
+          899.0,
+          1312.0
+        ]
+      },
+      "prediction": {
+        "index": 13,
+        "source_indices": [
+          13
+        ],
+        "text": "ADD MORE SHADOWS",
+        "start_frame": 660,
+        "end_frame": 721,
+        "position": [
+          188.0,
+          1229.0,
+          898.0,
+          1315.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "add more shadows",
+        "prediction_normalized": "add more shadows"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 15,
+        "source_indices": [
+          15
+        ],
+        "text": "YOU DON'T HAVE",
+        "start_frame": 722,
+        "end_frame": 773,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          274.0,
+          1236.0,
+          823.0,
+          1308.0
+        ]
+      },
+      "prediction": {
+        "index": 14,
+        "source_indices": [
+          14
+        ],
+        "text": "YOUDON'T HAVE",
+        "start_frame": 722,
+        "end_frame": 768,
+        "position": [
+          267.0,
+          1229.0,
+          828.0,
+          1316.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "you don t have",
+        "prediction_normalized": "youdon t have"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": -5,
+        "temporal_iou": 0.903846
+      }
+    },
+    {
+      "truth": {
+        "index": 16,
+        "source_indices": [
+          16
+        ],
+        "text": "TO USE THEM",
+        "start_frame": 774,
+        "end_frame": 797,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          332.0,
+          1236.0,
+          761.0,
+          1309.0
+        ]
+      },
+      "prediction": {
+        "index": 15,
+        "source_indices": [
+          15
+        ],
+        "text": "TO USE THEM",
+        "start_frame": 769,
+        "end_frame": 797,
+        "position": [
+          327.0,
+          1230.0,
+          764.0,
+          1315.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "to use them",
+        "prediction_normalized": "to use them"
+      },
+      "boundary": {
+        "start_error_frames": -5,
+        "end_error_frames": 0,
+        "temporal_iou": 0.827586
+      }
+    },
+    {
+      "truth": {
+        "index": 17,
+        "source_indices": [
+          17
+        ],
+        "text": "EVERY TIME",
+        "start_frame": 798,
+        "end_frame": 833,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          348.0,
+          1235.0,
+          740.0,
+          1311.0
+        ]
+      },
+      "prediction": {
+        "index": 16,
+        "source_indices": [
+          16
+        ],
+        "text": "EVERYTIME",
+        "start_frame": 798,
+        "end_frame": 833,
+        "position": [
+          346.0,
+          1234.0,
+          743.0,
+          1315.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "every time",
+        "prediction_normalized": "everytime"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 18,
+        "source_indices": [
+          18
+        ],
+        "text": "YOU HAVE",
+        "start_frame": 834,
+        "end_frame": 853,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          378.0,
+          1236.0,
+          719.0,
+          1311.0
+        ]
+      },
+      "prediction": {
+        "index": 17,
+        "source_indices": [
+          17
+        ],
+        "text": "YOU HAVE",
+        "start_frame": 834,
+        "end_frame": 853,
+        "position": [
+          374.0,
+          1232.0,
+          720.0,
+          1315.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "you have",
+        "prediction_normalized": "you have"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 19,
+        "source_indices": [
+          19
+        ],
+        "text": "TO WATCH OUT",
+        "start_frame": 854,
+        "end_frame": 880,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          296.0,
+          1232.0,
+          795.0,
+          1315.0
+        ]
+      },
+      "prediction": {
+        "index": 18,
+        "source_indices": [
+          18
+        ],
+        "text": "TO WATCH OUT",
+        "start_frame": 854,
+        "end_frame": 880,
+        "position": [
+          292.0,
+          1230.0,
+          798.0,
+          1318.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "to watch out",
+        "prediction_normalized": "to watch out"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 20,
+        "source_indices": [
+          20
+        ],
+        "text": "BECAUSE FOR EXAMPLE",
+        "start_frame": 881,
+        "end_frame": 921,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          163.0,
+          1236.0,
+          925.0,
+          1310.0
+        ]
+      },
+      "prediction": {
+        "index": 19,
+        "source_indices": [
+          19
+        ],
+        "text": "BECAUSE FOR EXAMPLE",
+        "start_frame": 881,
+        "end_frame": 921,
+        "position": [
+          160.0,
+          1231.0,
+          929.0,
+          1315.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "because for example",
+        "prediction_normalized": "because for example"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 21,
+        "source_indices": [
+          21
+        ],
+        "text": "IN BRAWL BALL",
+        "start_frame": 922,
+        "end_frame": 959,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          288.0,
+          1235.0,
+          794.0,
+          1313.0
+        ]
+      },
+      "prediction": {
+        "index": 20,
+        "source_indices": [
+          20
+        ],
+        "text": "INBRAWL BALL",
+        "start_frame": 922,
+        "end_frame": 958,
+        "position": [
+          285.0,
+          1229.0,
+          798.0,
+          1319.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "in brawl ball",
+        "prediction_normalized": "inbrawl ball"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": -1,
+        "temporal_iou": 0.973684
+      }
+    },
+    {
+      "truth": {
+        "index": 22,
+        "source_indices": [
+          22
+        ],
+        "text": "IF YOU ARE LIKE",
+        "start_frame": 960,
+        "end_frame": 997,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          286.0,
+          1229.0,
+          805.0,
+          1313.0
+        ]
+      },
+      "prediction": {
+        "index": 21,
+        "source_indices": [
+          21
+        ],
+        "text": "IF YOU ARE LIKE",
+        "start_frame": 960,
+        "end_frame": 997,
+        "position": [
+          283.0,
+          1228.0,
+          809.0,
+          1317.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "if you are like",
+        "prediction_normalized": "if you are like"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 23,
+        "source_indices": [
+          23
+        ],
+        "text": "ONE-SHOT TO GET",
+        "start_frame": 998,
+        "end_frame": 1026,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          240.0,
+          1229.0,
+          849.0,
+          1314.0
+        ]
+      },
+      "prediction": {
+        "index": 22,
+        "source_indices": [
+          22
+        ],
+        "text": "ONE-SHOT TO GET",
+        "start_frame": 998,
+        "end_frame": 1049,
+        "position": [
+          239.0,
+          1231.0,
+          850.0,
+          1314.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "one shot to get",
+        "prediction_normalized": "one shot to get"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 23,
+        "temporal_iou": 0.557692
+      }
+    },
+    {
+      "truth": {
+        "index": 24,
+        "source_indices": [
+          24
+        ],
+        "text": "SHADOW AND",
+        "start_frame": 1027,
+        "end_frame": 1079,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          306.0,
+          1233.0,
+          777.0,
+          1311.0
+        ]
+      },
+      "prediction": {
+        "index": 23,
+        "source_indices": [
+          23
+        ],
+        "text": "SHADOW AND",
+        "start_frame": 1027,
+        "end_frame": 1079,
+        "position": [
+          306.0,
+          1232.0,
+          779.0,
+          1313.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "shadow and",
+        "prediction_normalized": "shadow and"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 25,
+        "source_indices": [
+          25
+        ],
+        "text": "SOMEONE IS SCORING",
+        "start_frame": 1080,
+        "end_frame": 1109,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          187.0,
+          1232.0,
+          897.0,
+          1310.0
+        ]
+      },
+      "prediction": {
+        "index": 24,
+        "source_indices": [
+          24
+        ],
+        "text": "SOMEONE IS SCORING",
+        "start_frame": 1080,
+        "end_frame": 1109,
+        "position": [
+          186.0,
+          1229.0,
+          899.0,
+          1314.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "someone is scoring",
+        "prediction_normalized": "someone is scoring"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 26,
+        "source_indices": [
+          26
+        ],
+        "text": "A GOAL",
+        "start_frame": 1110,
+        "end_frame": 1139,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          409.0,
+          1232.0,
+          673.0,
+          1312.0
+        ]
+      },
+      "prediction": {
+        "index": 25,
+        "source_indices": [
+          25
+        ],
+        "text": "AGOAL",
+        "start_frame": 1110,
+        "end_frame": 1139,
+        "position": [
+          406.0,
+          1230.0,
+          677.0,
+          1315.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "a goal",
+        "prediction_normalized": "agoal"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 27,
+        "source_indices": [
+          27
+        ],
+        "text": "THAT BAR IS",
+        "start_frame": 1140,
+        "end_frame": 1184,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          344.0,
+          1231.0,
+          748.0,
+          1315.0
+        ]
+      },
+      "prediction": {
+        "index": 26,
+        "source_indices": [
+          26
+        ],
+        "text": "THAT BAR IS",
+        "start_frame": 1140,
+        "end_frame": 1184,
+        "position": [
+          341.0,
+          1229.0,
+          750.0,
+          1316.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "that bar is",
+        "prediction_normalized": "that bar is"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 28,
+        "source_indices": [
+          28
+        ],
+        "text": "GOING TO DISAPPEAR",
+        "start_frame": 1185,
+        "end_frame": 1227,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          181.0,
+          1222.0,
+          909.0,
+          1320.0
+        ]
+      },
+      "prediction": {
+        "index": 27,
+        "source_indices": [
+          27
+        ],
+        "text": "GOING TO DISAPPEAR",
+        "start_frame": 1185,
+        "end_frame": 1227,
+        "position": [
+          187.0,
+          1226.0,
+          908.0,
+          1317.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "going to disappear",
+        "prediction_normalized": "going to disappear"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 29,
+        "source_indices": [
+          29
+        ],
+        "text": "SO YOU HAVE TO",
+        "start_frame": 1228,
+        "end_frame": 1264,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          264.0,
+          1223.0,
+          823.0,
+          1319.0
+        ]
+      },
+      "prediction": {
+        "index": 28,
+        "source_indices": [
+          28
+        ],
+        "text": "SO YOU HAVE TO",
+        "start_frame": 1228,
+        "end_frame": 1264,
+        "position": [
+          265.0,
+          1228.0,
+          820.0,
+          1317.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "so you have to",
+        "prediction_normalized": "so you have to"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 30,
+        "source_indices": [
+          30
+        ],
+        "text": "WATCH OUT",
+        "start_frame": 1265,
+        "end_frame": 1284,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          346.0,
+          1233.0,
+          747.0,
+          1316.0
+        ]
+      },
+      "prediction": {
+        "index": 29,
+        "source_indices": [
+          29
+        ],
+        "text": "WATCH OUT",
+        "start_frame": 1265,
+        "end_frame": 1284,
+        "position": [
+          347.0,
+          1233.0,
+          746.0,
+          1315.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "watch out",
+        "prediction_normalized": "watch out"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 31,
+        "source_indices": [
+          31
+        ],
+        "text": "FOR THE CLONES",
+        "start_frame": 1285,
+        "end_frame": 1301,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          269.0,
+          1236.0,
+          819.0,
+          1311.0
+        ]
+      },
+      "prediction": {
+        "index": 30,
+        "source_indices": [
+          30
+        ],
+        "text": "FOR THE CLONES",
+        "start_frame": 1285,
+        "end_frame": 1301,
+        "position": [
+          267.0,
+          1232.0,
+          821.0,
+          1314.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "for the clones",
+        "prediction_normalized": "for the clones"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 32,
+        "source_indices": [
+          32
+        ],
+        "text": "YOU HAVE",
+        "start_frame": 1302,
+        "end_frame": 1325,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          377.0,
+          1233.0,
+          720.0,
+          1316.0
+        ]
+      },
+      "prediction": {
+        "index": 31,
+        "source_indices": [
+          31
+        ],
+        "text": "YOUHAVE",
+        "start_frame": 1302,
+        "end_frame": 1325,
+        "position": [
+          374.0,
+          1231.0,
+          721.0,
+          1319.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "you have",
+        "prediction_normalized": "youhave"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 33,
+        "source_indices": [
+          33
+        ],
+        "text": "ALSO",
+        "start_frame": 1326,
+        "end_frame": 1359,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          446.0,
+          1234.0,
+          638.0,
+          1310.0
+        ]
+      },
+      "prediction": {
+        "index": 32,
+        "source_indices": [
+          32
+        ],
+        "text": "ALSO",
+        "start_frame": 1326,
+        "end_frame": 1359,
+        "position": [
+          447.0,
+          1234.0,
+          639.0,
+          1310.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "also",
+        "prediction_normalized": "also"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 34,
+        "source_indices": [
+          34
+        ],
+        "text": "WHEN YOU DIE",
+        "start_frame": 1360,
+        "end_frame": 1401,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          305.0,
+          1088.0,
+          789.0,
+          1168.0
+        ]
+      },
+      "prediction": {
+        "index": 33,
+        "source_indices": [
+          33
+        ],
+        "text": "WHEN YOU DIE",
+        "start_frame": 1360,
+        "end_frame": 1401,
+        "position": [
+          302.0,
+          1086.0,
+          790.0,
+          1168.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "when you die",
+        "prediction_normalized": "when you die"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 35,
+        "source_indices": [
+          35
+        ],
+        "text": "ALL YOUR SHADOWS",
+        "start_frame": 1402,
+        "end_frame": 1446,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          199.0,
+          1084.0,
+          887.0,
+          1171.0
+        ]
+      },
+      "prediction": {
+        "index": 34,
+        "source_indices": [
+          34
+        ],
+        "text": "ALL YOUR SHADOWS",
+        "start_frame": 1402,
+        "end_frame": 1446,
+        "position": [
+          199.0,
+          1084.0,
+          887.0,
+          1171.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "all your shadows",
+        "prediction_normalized": "all your shadows"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 36,
+        "source_indices": [
+          36
+        ],
+        "text": "DISAPPEAR",
+        "start_frame": 1447,
+        "end_frame": 1468,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          347.0,
+          1081.0,
+          744.0,
+          1175.0
+        ]
+      },
+      "prediction": {
+        "index": 35,
+        "source_indices": [
+          35
+        ],
+        "text": "DISAPPEAR",
+        "start_frame": 1447,
+        "end_frame": 1468,
+        "position": [
+          347.0,
+          1083.0,
+          741.0,
+          1172.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "disappear",
+        "prediction_normalized": "disappear"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 37,
+        "source_indices": [
+          37
+        ],
+        "text": "MOST OF THE TIME",
+        "start_frame": 1469,
+        "end_frame": 1533,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          242.0,
+          1230.0,
+          845.0,
+          1312.0
+        ]
+      },
+      "prediction": {
+        "index": 36,
+        "source_indices": [
+          36
+        ],
+        "text": "MOST OF THE TIME",
+        "start_frame": 1469,
+        "end_frame": 1533,
+        "position": [
+          241.0,
+          1229.0,
+          848.0,
+          1316.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "most of the time",
+        "prediction_normalized": "most of the time"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 38,
+        "source_indices": [
+          38
+        ],
+        "text": "IT IS WORTH IT",
+        "start_frame": 1534,
+        "end_frame": 1572,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          302.0,
+          1228.0,
+          787.0,
+          1313.0
+        ]
+      },
+      "prediction": {
+        "index": 37,
+        "source_indices": [
+          37
+        ],
+        "text": "IT IS WORTH IT",
+        "start_frame": 1534,
+        "end_frame": 1572,
+        "position": [
+          300.0,
+          1229.0,
+          786.0,
+          1315.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "it is worth it",
+        "prediction_normalized": "it is worth it"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 39,
+        "source_indices": [
+          39
+        ],
+        "text": "JUST TO HAVE IT",
+        "start_frame": 1573,
+        "end_frame": 1608,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          277.0,
+          1230.0,
+          812.0,
+          1312.0
+        ]
+      },
+      "prediction": {
+        "index": 38,
+        "source_indices": [
+          38
+        ],
+        "text": "JUST TO HAVE IT",
+        "start_frame": 1573,
+        "end_frame": 1608,
+        "position": [
+          274.0,
+          1227.0,
+          814.0,
+          1318.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "just to have it",
+        "prediction_normalized": "just to have it"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 40,
+        "source_indices": [
+          40
+        ],
+        "text": "ON YOURSELF",
+        "start_frame": 1609,
+        "end_frame": 1640,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          315.0,
+          1230.0,
+          778.0,
+          1311.0
+        ]
+      },
+      "prediction": {
+        "index": 39,
+        "source_indices": [
+          39
+        ],
+        "text": "ON YOURSELF",
+        "start_frame": 1609,
+        "end_frame": 1640,
+        "position": [
+          312.0,
+          1226.0,
+          781.0,
+          1316.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "on yourself",
+        "prediction_normalized": "on yourself"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 41,
+        "source_indices": [
+          41
+        ],
+        "text": "AND DON'T",
+        "start_frame": 1641,
+        "end_frame": 1673,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          350.0,
+          1230.0,
+          735.0,
+          1315.0
+        ]
+      },
+      "prediction": {
+        "index": 40,
+        "source_indices": [
+          40
+        ],
+        "text": "AND DON'T",
+        "start_frame": 1641,
+        "end_frame": 1673,
+        "position": [
+          347.0,
+          1223.0,
+          741.0,
+          1319.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "and don t",
+        "prediction_normalized": "and don t"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 42,
+        "source_indices": [
+          42
+        ],
+        "text": "USE THEM TO ATTACK",
+        "start_frame": 1674,
+        "end_frame": 1726,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          199.0,
+          1229.0,
+          894.0,
+          1313.0
+        ]
+      },
+      "prediction": {
+        "index": 41,
+        "source_indices": [
+          41
+        ],
+        "text": "USE THEM TO ATTACK",
+        "start_frame": 1674,
+        "end_frame": 1726,
+        "position": [
+          199.0,
+          1230.0,
+          893.0,
+          1315.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "use them to attack",
+        "prediction_normalized": "use them to attack"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 43,
+        "source_indices": [
+          43
+        ],
+        "text": "JUST TO",
+        "start_frame": 1727,
+        "end_frame": 1770,
+        "verification_tier": "A",
+        "boundary_uncertainty_frames": 0,
+        "position": [
+          405.0,
+          1226.0,
+          682.0,
+          1313.0
+        ]
+      },
+      "prediction": {
+        "index": 42,
+        "source_indices": [
+          42
+        ],
+        "text": "JUST TO",
+        "start_frame": 1727,
+        "end_frame": 1770,
+        "position": [
+          402.0,
+          1227.0,
+          684.0,
+          1315.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "just to",
+        "prediction_normalized": "just to"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 44,
+        "source_indices": [
+          44
+        ],
+        "text": "PROTECT YOURSELF",
+        "start_frame": 1771,
+        "end_frame": 1817,
+        "verification_tier": "A",
+        "boundary_uncertainty_frames": 0,
+        "position": [
+          214.0,
+          1217.0,
+          877.0,
+          1318.0
+        ]
+      },
+      "prediction": {
+        "index": 43,
+        "source_indices": [
+          43
+        ],
+        "text": "PROTECT YOURSELF",
+        "start_frame": 1771,
+        "end_frame": 1817,
+        "position": [
+          216.0,
+          1226.0,
+          875.0,
+          1318.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "protect yourself",
+        "prediction_normalized": "protect yourself"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 45,
+        "source_indices": [
+          45
+        ],
+        "text": "FROM BRAWLERS",
+        "start_frame": 1818,
+        "end_frame": 1872,
+        "verification_tier": "A",
+        "boundary_uncertainty_frames": 0,
+        "position": [
+          257.0,
+          1229.0,
+          832.0,
+          1316.0
+        ]
+      },
+      "prediction": {
+        "index": 44,
+        "source_indices": [
+          44
+        ],
+        "text": "FROM BRAWLERS",
+        "start_frame": 1818,
+        "end_frame": 1872,
+        "position": [
+          257.0,
+          1227.0,
+          832.0,
+          1316.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "from brawlers",
+        "prediction_normalized": "from brawlers"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 46,
+        "source_indices": [
+          46
+        ],
+        "text": "LIKE MORTIS",
+        "start_frame": 1873,
+        "end_frame": 1917,
+        "verification_tier": "A",
+        "boundary_uncertainty_frames": 0,
+        "position": [
+          335.0,
+          1232.0,
+          752.0,
+          1310.0
+        ]
+      },
+      "prediction": {
+        "index": 45,
+        "source_indices": [
+          45
+        ],
+        "text": "LIKE MORTIS",
+        "start_frame": 1873,
+        "end_frame": 1917,
+        "position": [
+          334.0,
+          1229.0,
+          755.0,
+          1314.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "like mortis",
+        "prediction_normalized": "like mortis"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 47,
+        "source_indices": [
+          47
+        ],
+        "text": "I WOULD SAY",
+        "start_frame": 1918,
+        "end_frame": 1953,
+        "verification_tier": "A",
+        "boundary_uncertainty_frames": 0,
+        "position": [
+          323.0,
+          1227.0,
+          761.0,
+          1313.0
+        ]
+      },
+      "prediction": {
+        "index": 46,
+        "source_indices": [
+          46
+        ],
+        "text": "I WOULD SAY",
+        "start_frame": 1918,
+        "end_frame": 1953,
+        "position": [
+          318.0,
+          1217.0,
+          766.0,
+          1319.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "i would say",
+        "prediction_normalized": "i would say"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 48,
+        "source_indices": [
+          48
+        ],
+        "text": "YOU CAN PLAY",
+        "start_frame": 1954,
+        "end_frame": 2002,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          303.0,
+          1230.0,
+          787.0,
+          1314.0
+        ]
+      },
+      "prediction": {
+        "index": 47,
+        "source_indices": [
+          47
+        ],
+        "text": "YOUCAN PLAY",
+        "start_frame": 1954,
+        "end_frame": 2009,
+        "position": [
+          301.0,
+          1228.0,
+          792.0,
+          1322.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "you can play",
+        "prediction_normalized": "youcan play"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 7,
+        "temporal_iou": 0.875
+      }
+    },
+    {
+      "truth": {
+        "index": 49,
+        "source_indices": [
+          49
+        ],
+        "text": "BASICALLY SIRIUS",
+        "start_frame": 2003,
+        "end_frame": 2051,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          253.0,
+          1224.0,
+          835.0,
+          1316.0
+        ]
+      },
+      "prediction": {
+        "index": 48,
+        "source_indices": [
+          48
+        ],
+        "text": "BASICALLY SIRIUS",
+        "start_frame": 2040,
+        "end_frame": 2069,
+        "position": [
+          251.0,
+          1224.0,
+          836.0,
+          1319.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "basically sirius",
+        "prediction_normalized": "basically sirius"
+      },
+      "boundary": {
+        "start_error_frames": 37,
+        "end_error_frames": 18,
+        "temporal_iou": 0.179104
+      }
+    },
+    {
+      "truth": {
+        "index": 50,
+        "source_indices": [
+          50
+        ],
+        "text": "EVERYWHERE",
+        "start_frame": 2052,
+        "end_frame": 2076,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          313.0,
+          1226.0,
+          770.0,
+          1310.0
+        ]
+      },
+      "prediction": {
+        "index": 49,
+        "source_indices": [
+          49
+        ],
+        "text": "EVERYWHERE",
+        "start_frame": 2050,
+        "end_frame": 2076,
+        "position": [
+          318.0,
+          1234.0,
+          772.0,
+          1307.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "everywhere",
+        "prediction_normalized": "everywhere"
+      },
+      "boundary": {
+        "start_error_frames": -2,
+        "end_error_frames": 0,
+        "temporal_iou": 0.925926
+      }
+    },
+    {
+      "truth": {
+        "index": 51,
+        "source_indices": [
+          51
+        ],
+        "text": "BECAUSE IT'S",
+        "start_frame": 2077,
+        "end_frame": 2117,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          330.0,
+          1234.0,
+          759.0,
+          1308.0
+        ]
+      },
+      "prediction": {
+        "index": 50,
+        "source_indices": [
+          50
+        ],
+        "text": "BECAUSE IT'S",
+        "start_frame": 2077,
+        "end_frame": 2117,
+        "position": [
+          321.0,
+          1228.0,
+          769.0,
+          1328.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "because it s",
+        "prediction_normalized": "because it s"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 52,
+        "source_indices": [
+          52
+        ],
+        "text": "SO OP RIGHT NOW",
+        "start_frame": 2118,
+        "end_frame": 2175,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          236.0,
+          1232.0,
+          849.0,
+          1314.0
+        ]
+      },
+      "prediction": {
+        "index": 51,
+        "source_indices": [
+          51
+        ],
+        "text": "SOOP RIGHT NOW",
+        "start_frame": 2118,
+        "end_frame": 2175,
+        "position": [
+          241.0,
+          1232.0,
+          846.0,
+          1313.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "so op right now",
+        "prediction_normalized": "soop right now"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 53,
+        "source_indices": [
+          53
+        ],
+        "text": "MAYBE NOT",
+        "start_frame": 2176,
+        "end_frame": 2212,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          352.0,
+          1236.0,
+          739.0,
+          1311.0
+        ]
+      },
+      "prediction": {
+        "index": 52,
+        "source_indices": [
+          52
+        ],
+        "text": "MAYBE NOT",
+        "start_frame": 2176,
+        "end_frame": 2212,
+        "position": [
+          348.0,
+          1232.0,
+          742.0,
+          1314.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "maybe not",
+        "prediction_normalized": "maybe not"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 54,
+        "source_indices": [
+          54
+        ],
+        "text": "IN KNOCKOUT",
+        "start_frame": 2213,
+        "end_frame": 2255,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          311.0,
+          1233.0,
+          779.0,
+          1314.0
+        ]
+      },
+      "prediction": {
+        "index": 53,
+        "source_indices": [
+          53
+        ],
+        "text": "INKNOCKOUT",
+        "start_frame": 2213,
+        "end_frame": 2279,
+        "position": [
+          310.0,
+          1229.0,
+          778.0,
+          1313.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "in knockout",
+        "prediction_normalized": "inknockout"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 24,
+        "temporal_iou": 0.641791
+      }
+    },
+    {
+      "truth": {
+        "index": 55,
+        "source_indices": [
+          55
+        ],
+        "text": "BUT ON MANY",
+        "start_frame": 2256,
+        "end_frame": 2306,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          311.0,
+          1234.0,
+          775.0,
+          1309.0
+        ]
+      },
+      "prediction": {
+        "index": 54,
+        "source_indices": [
+          54
+        ],
+        "text": "BUTONMANY",
+        "start_frame": 2255,
+        "end_frame": 2306,
+        "position": [
+          307.0,
+          1228.0,
+          778.0,
+          1317.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "but on many",
+        "prediction_normalized": "butonmany"
+      },
+      "boundary": {
+        "start_error_frames": -1,
+        "end_error_frames": 0,
+        "temporal_iou": 0.980769
+      }
+    },
+    {
+      "truth": {
+        "index": 56,
+        "source_indices": [
+          56
+        ],
+        "text": "OTHER MAPS",
+        "start_frame": 2307,
+        "end_frame": 2335,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          332.0,
+          1238.0,
+          757.0,
+          1307.0
+        ]
+      },
+      "prediction": {
+        "index": 55,
+        "source_indices": [
+          55
+        ],
+        "text": "OTHERMAPS",
+        "start_frame": 2307,
+        "end_frame": 2335,
+        "position": [
+          329.0,
+          1233.0,
+          760.0,
+          1314.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "other maps",
+        "prediction_normalized": "othermaps"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    },
+    {
+      "truth": {
+        "index": 57,
+        "source_indices": [
+          57
+        ],
+        "text": "HE'S REALLY GOOD",
+        "start_frame": 2336,
+        "end_frame": 2379,
+        "verification_tier": "B",
+        "boundary_uncertainty_frames": 18,
+        "position": [
+          234.0,
+          1236.0,
+          852.0,
+          1309.0
+        ]
+      },
+      "prediction": {
+        "index": 56,
+        "source_indices": [
+          56
+        ],
+        "text": "HE'S REALLY GOOD",
+        "start_frame": 2336,
+        "end_frame": 2379,
+        "position": [
+          231.0,
+          1230.0,
+          855.0,
+          1315.0
+        ]
+      },
+      "text": {
+        "similarity": 1.0,
+        "normalized_exact": true,
+        "truth_normalized": "he s really good",
+        "prediction_normalized": "he s really good"
+      },
+      "boundary": {
+        "start_error_frames": 0,
+        "end_error_frames": 0,
+        "temporal_iou": 1.0
+      }
+    }
+  ],
+  "false_positives": [],
+  "false_negatives": [
+    {
+      "index": 0,
+      "source_indices": [
+        0
+      ],
+      "text": "HOW TO PLAY",
+      "start_frame": 13,
+      "end_frame": 21,
+      "verification_tier": "B",
+      "boundary_uncertainty_frames": 18,
+      "position": [
+        126.0,
+        1080.0,
+        957.0,
+        1210.0
+      ]
+    }
+  ]
+}
