@@ -1,19 +1,28 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import App from './App'
-import { startTaskRecognition } from './api/tasks'
+import { listTasks, startTaskRecognition } from './api/tasks'
 import useTaskPolling from './hooks/useTaskPolling'
 
 const TEST_ROI = { x: 0.1, y: 0.65, width: 0.8, height: 0.25 }
 
 vi.mock('./api/tasks', () => ({
+  archiveTask: vi.fn(),
   downloadSrt: vi.fn(),
   getSubtitles: vi.fn(),
   getVideoUrl: vi.fn((taskId) => `/api/tasks/${taskId}/video`),
+  listTasks: vi.fn(),
   saveSubtitles: vi.fn(),
   startTaskRecognition: vi.fn(),
   uploadVideo: vi.fn(),
 }))
+
+function renderApp(path = '/tasks/task-1') {
+  const router = createMemoryRouter([{ path: '*', element: <App /> }], { initialEntries: [path] })
+  render(<RouterProvider router={router} />)
+  return router
+}
 
 vi.mock('./hooks/useTaskPolling', () => ({
   default: vi.fn(),
@@ -34,7 +43,6 @@ vi.mock('./components/RoiSelectionPanel', () => ({
 describe('App ROI workflow', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    window.history.replaceState({}, '', '/?task=task-1')
   })
 
   it('routes awaiting_roi tasks to region selection and starts recognition', async () => {
@@ -47,7 +55,7 @@ describe('App ROI workflow', () => {
     })
     startTaskRecognition.mockResolvedValue({ taskId: 'task-1', status: 'queued' })
 
-    render(<App />)
+    renderApp()
 
     expect(screen.getByRole('region', { name: 'ROI 状态页' })).toBeInTheDocument()
     expect(screen.getByText('/api/tasks/task-1/video')).toBeInTheDocument()
@@ -66,7 +74,7 @@ describe('App ROI workflow', () => {
       refresh: vi.fn(),
     })
 
-    render(<App />)
+    renderApp()
 
     expect(screen.queryByRole('region', { name: 'ROI 状态页' })).not.toBeInTheDocument()
     expect(screen.getByText('正在提取视频字幕')).toBeInTheDocument()
@@ -84,7 +92,7 @@ describe('App ROI workflow', () => {
       status: 409,
     }))
 
-    render(<App />)
+    renderApp()
     fireEvent.click(screen.getByRole('button', { name: '测试确认区域' }))
 
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1))
@@ -102,11 +110,41 @@ describe('App ROI workflow', () => {
     })
     startTaskRecognition.mockRejectedValue(Object.assign(new Error('网络连接中断'), { status: 0 }))
 
-    render(<App />)
+    renderApp()
     fireEvent.click(screen.getByRole('button', { name: '测试确认区域' }))
 
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1))
     expect(screen.getByRole('alert')).toHaveTextContent('网络连接中断')
     expect(screen.getByRole('button', { name: '测试确认区域' })).toBeEnabled()
+  })
+
+  it('restores a historical task through task-center, logo, back and forward navigation', async () => {
+    listTasks.mockResolvedValue({
+      tasks: [{
+        id: 'task-1',
+        taskId: 'task-1',
+        filename: 'lesson.mp4',
+        status: 'queued',
+        progress: 12,
+        subtitle_count: 0,
+      }],
+      pagination: { page: 1, limit: 12, total: 1, pages: 1 },
+    })
+    useTaskPolling.mockReturnValue({
+      task: { taskId: 'task-1', status: 'queued', filename: 'lesson.mp4', progress: 12 },
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    })
+    const router = renderApp('/tasks')
+    fireEvent.click(await screen.findByRole('button', { name: '查看进度' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/tasks/task-1'))
+
+    fireEvent.click(screen.getByRole('button', { name: '返回任务中心' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/tasks'))
+    await router.navigate(-1)
+    await waitFor(() => expect(router.state.location.pathname).toBe('/tasks/task-1'))
+    await router.navigate(1)
+    await waitFor(() => expect(router.state.location.pathname).toBe('/tasks'))
   })
 })

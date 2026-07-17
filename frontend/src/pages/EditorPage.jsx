@@ -1,8 +1,9 @@
-import { useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { getVideoUrl } from '../api/tasks'
 import SubtitleEditor from '../components/SubtitleEditor'
 import Timeline from '../components/Timeline'
 import VideoPanel from '../components/VideoPanel'
+import { findSubtitleAtTime } from '../utils/subtitles'
 
 export default function EditorPage({
   task,
@@ -16,18 +17,34 @@ export default function EditorPage({
   onVideoError,
 }) {
   const videoRef = useRef(null)
-  const [currentTime, setCurrentTime] = useState(0)
+  const timelineRef = useRef(null)
+  const currentTimeRef = useRef(0)
   const [duration, setDuration] = useState(0)
   const [selectedId, setSelectedId] = useState(null)
+  const [currentSubtitleId, setCurrentSubtitleId] = useState(null)
+  const currentSubtitleIdRef = useRef(null)
 
-  const currentSubtitle = useMemo(
-    () => subtitles.find((subtitle) => currentTime >= subtitle.start_time && currentTime < subtitle.end_time),
-    [currentTime, subtitles],
+  const subtitlesById = useMemo(
+    () => new Map(subtitles.map((subtitle) => [subtitle._clientId, subtitle])),
+    [subtitles],
   )
+  const currentSubtitle = currentSubtitleId ? subtitlesById.get(currentSubtitleId) : null
+  const frameRate = Number(task?.metadata?.fps) > 0 ? Number(task.metadata.fps) : 30
+
+  const syncMediaTime = useCallback((time) => {
+    const safeTime = Math.max(0, Number(time) || 0)
+    currentTimeRef.current = safeTime
+    timelineRef.current?.syncTime(safeTime)
+    const nextId = findSubtitleAtTime(subtitles, safeTime)?._clientId || null
+    if (currentSubtitleIdRef.current !== nextId) {
+      currentSubtitleIdRef.current = nextId
+      setCurrentSubtitleId(nextId)
+    }
+  }, [subtitles])
 
   const seek = (time, shouldPlay = false) => {
     const safeTime = Math.max(0, Math.min(Number(time) || 0, duration || Number(time) || 0))
-    setCurrentTime(safeTime)
+    syncMediaTime(safeTime)
     if (videoRef.current) {
       videoRef.current.currentTime = safeTime
       if (shouldPlay) videoRef.current.play().catch(() => {})
@@ -35,7 +52,7 @@ export default function EditorPage({
   }
 
   const addAtPlayhead = () => {
-    const newId = onSubtitleAdd(currentTime, duration)
+    const newId = onSubtitleAdd(currentTimeRef.current, duration)
     if (newId) setSelectedId(newId)
   }
 
@@ -48,14 +65,17 @@ export default function EditorPage({
           filename={task.filename || task.originalName}
           currentSubtitle={currentSubtitle}
           duration={duration}
-          onTimeUpdate={setCurrentTime}
+          frameRate={frameRate}
+          onMediaTime={syncMediaTime}
           onDurationChange={setDuration}
           onError={onVideoError}
         />
         <Timeline
+          ref={timelineRef}
           subtitles={subtitles}
           duration={duration}
-          currentTime={currentTime}
+          initialTime={0}
+          frameRate={frameRate}
           selectedId={selectedId}
           onSeek={seek}
           onSelect={setSelectedId}

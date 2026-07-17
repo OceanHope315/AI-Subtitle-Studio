@@ -96,6 +96,17 @@ export function getTask(taskId, signal) {
   return request(taskPath(taskId), { signal })
 }
 
+export async function listTasks({ page = 1, limit = 12, status = '', search = '', signal } = {}) {
+  const query = new URLSearchParams({ page: String(page), limit: String(limit) })
+  if (status) query.set('status', status)
+  if (search) query.set('search', search)
+  const payload = await request(`${API_BASE_URL}/tasks?${query}`, { signal })
+  return {
+    tasks: payload?.tasks || [],
+    pagination: payload?.pagination || { page, limit, total: 0, pages: 0 },
+  }
+}
+
 export async function startTaskRecognition(taskId, roi) {
   const payload = await request(taskPath(taskId, '/start'), {
     method: 'POST',
@@ -107,16 +118,26 @@ export async function startTaskRecognition(taskId, roi) {
 
 export async function getSubtitles(taskId, signal) {
   const payload = await request(taskPath(taskId, '/subtitles'), { signal })
-  return payload?.subtitles || []
+  return { subtitles: payload?.subtitles || [], revision: Number(payload?.revision) || 0 }
 }
 
-export async function saveSubtitles(taskId, subtitles) {
+export async function saveSubtitles(taskId, subtitles, expectedRevision) {
   const payload = await request(taskPath(taskId, '/subtitles'), {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'If-Match': `"${expectedRevision}"`,
+    },
     body: JSON.stringify({ subtitles }),
   })
-  return payload?.subtitles || subtitles
+  return {
+    subtitles: payload?.subtitles || subtitles,
+    revision: Number(payload?.revision ?? expectedRevision + 1),
+  }
+}
+
+export function archiveTask(taskId) {
+  return request(taskPath(taskId, '/archive'), { method: 'PATCH' })
 }
 
 export function getVideoUrl(taskId) {

@@ -1,10 +1,9 @@
 # AI Subtitle Studio
 <img width="1672" height="941" alt="image" src="https://github.com/user-attachments/assets/e81423f3-a285-4c56-baa5-6f88d062601e" />
 
-
 AI Subtitle Studio 是一个完整可运行的 AI 视频字幕辅助制作平台。它以 PaddleOCR
 检测画面硬字幕，用 faster-whisper 在视觉事件内受限校字，通过网页完成 ROI 框选、
-校对、时间轴编辑与 SRT 导出。
+任务恢复、校对、逐帧时间轴检查、自动保存与 SRT 导出。
 
 本项目是从旧 Tkinter 原型重新设计的新工程；旧目录 `D:\new project` 未被修改。
 详细审查见 [旧项目代码审查报告](docs/OLD_PROJECT_REVIEW.md)。
@@ -17,7 +16,9 @@ AI Subtitle Studio 是一个完整可运行的 AI 视频字幕辅助制作平台
 4. FastAPI 只裁剪用户框选区域，粗抽帧发现视觉字幕并保留全部 OCR 候选。
 5. 视觉变化扫描定位边界，再以固定 OCR 预算精修到接近源视频单帧。
 6. OCR 决定字幕条数和时间轴；faster-whisper 只能在当前视觉事件内受限校字。
-7. 前端轮询进度，用户可增删、编辑时间和文字，保存后导出 `final.srt`。
+7. `/tasks` 任务中心可恢复全部状态；Logo、新建、刷新和浏览器前进/后退都由正式路由管理。
+8. 播放器用呈现帧 `mediaTime` 切换预览字幕，并支持逐帧前后移动和全片/5 秒/1 秒时间轴。
+9. 字幕修改 750ms 防抖自动保存；失败时按 taskId 写 IndexedDB，revision 冲突返回 409。
 
 ## 架构
 
@@ -27,7 +28,7 @@ React + Vite :5173
 Express :3001 ───── MongoDB（推荐）/ JSON 文件降级
         │ 异步 job + polling
 FastAPI :8000
-        ├── OpenCV 视频读取与抽帧
+        ├── PyAV PTS 视频读取与抽帧
         ├── PaddleOCR 硬字幕检测
         └── faster-whisper 文本校验与断句
 ```
@@ -43,8 +44,8 @@ AI-Subtitle-Studio/
 │       ├── api/                后端 API 封装
 │       ├── components/         上传、播放器、字幕表、时间轴
 │       ├── hooks/              任务轮询
-│       ├── pages/              编辑器页面
-│       └── utils/              时间与字幕校验
+│       ├── pages/              任务中心、上传与任务工作区
+│       └── utils/              时间、字幕校验与 IndexedDB 草稿
 ├── backend/                    Express 编排服务
 │   ├── routes/                 任务、字幕、视频和导出 API
 │   ├── models/                 Mongoose VideoTask
@@ -52,7 +53,7 @@ AI-Subtitle-Studio/
 │   ├── middleware/             统一错误处理
 │   └── test/                   Node 原生测试
 ├── ai_service/                 FastAPI AI 服务
-│   ├── video/                  OpenCV 读取和抽帧
+│   ├── video/                  PyAV PTS 读取、抽帧和边界映射
 │   ├── ocr/                    PaddleOCR 2.x/3.x 适配器
 │   ├── whisper/                faster-whisper 适配器
 │   ├── alignment/              OCR 时序聚合与 OCR/ASR 融合
@@ -129,7 +130,7 @@ copy .env.example .env.local
 npm run dev
 ```
 
-打开 `http://localhost:5173`。服务健康检查分别为：
+打开 `http://localhost:5173`，根路径会进入 `/tasks` 任务中心。服务健康检查分别为：
 
 - `http://localhost:8000/health`
 - `http://localhost:3001/api/health`
@@ -203,7 +204,12 @@ python scripts\evaluate-visual-timeline.py `
   完整可读，系统选择不凭空补字
 - 完整 CPU 回归使用 80 次粗采样 OCR、20 次短事件发现 OCR、137 次边界 OCR 和
   14 个 Whisper 校字窗口，无警告，耗时约 534 秒
-- AI / Backend / Frontend 自动化测试分别为 67 / 15 / 26 项；前端 lint 与生产构建通过
+- P0 时间校准使用 PyAV 原始 PTS；目标 Byron 视频实测为 29.97 FPS、`time_base=1/11988`、
+  `start_pts=400`。相邻源帧 762/763 正好从 `AND HEAL THEM` 切到 `WHEN YOU CAN`；映射
+  边界为 25.458792 秒，相对旧 25.460 秒误差 1.208ms，小于一个 33.367ms 呈现帧
+- AI / Backend / Frontend 自动化测试分别为 70 / 17 / 40 项；compile、lint 与生产构建通过
+- 隔离任务库的真实 HTTP 验收恢复了目标历史任务的 88 条字幕；分页轻量摘要、刷新路由、
+  revision 0→1、第二标签式旧版本 409、后端重启后 revision/字幕恢复均通过
 
 这里的检出率来自 `data/ground_truth/test-video.visual.json` 的逐事件视觉真值；
 `testVideo.txt` 仍只是语音粗转写，不能代替硬字幕真值。Tier A 是逐相邻帧精确复核，

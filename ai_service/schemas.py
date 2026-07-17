@@ -36,6 +36,11 @@ class SubtitleItem(BaseModel):
     confidence: float = Field(default=0, ge=0, le=1)
     position: list[int] | None = None
     source: str = "ocr"
+    start_frame: int | None = Field(default=None, ge=0)
+    end_frame_exclusive: int | None = Field(default=None, ge=1)
+    start_pts: int | None = None
+    end_pts: int | None = None
+    time_base: str | None = None
 
     @model_validator(mode="after")
     def validate_times(self) -> "SubtitleItem":
@@ -43,6 +48,12 @@ class SubtitleItem(BaseModel):
             raise ValueError("end_time must be greater than start_time")
         if self.position is not None and len(self.position) != 4:
             raise ValueError("position must contain [x1, y1, x2, y2]")
+        if (
+            self.start_frame is not None
+            and self.end_frame_exclusive is not None
+            and self.end_frame_exclusive <= self.start_frame
+        ):
+            raise ValueError("end_frame_exclusive must be greater than start_frame")
         return self
 
 
@@ -53,6 +64,10 @@ class VideoMetadata(BaseModel):
     frame_count: int
     duration: float
     codec: str | None = None
+    time_base: str | None = None
+    start_pts: int | None = None
+    start_time: float = 0
+    variable_frame_rate: bool = False
 
 
 class JobRecord(BaseModel):

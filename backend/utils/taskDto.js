@@ -1,4 +1,4 @@
-export function taskToDto(task) {
+function sharedTaskFields(task) {
   if (!task) return null;
   const id = task.id;
   const videoUrl = `/api/tasks/${encodeURIComponent(id)}/video`;
@@ -14,8 +14,9 @@ export function taskToDto(task) {
     progress: task.progress,
     message: task.message || null,
     metadata: task.metadata || {},
-    subtitles: task.subtitles || [],
-    subtitle_count: task.subtitles?.length || 0,
+    subtitle_count: Number.isInteger(task.subtitleCount) ? task.subtitleCount : (task.subtitles?.length || 0),
+    revision: Number.isInteger(task.revision) ? task.revision : 0,
+    archived_at: task.archivedAt || null,
     error: task.error || null,
     artifacts: {
       subtitles_url: subtitlesUrl,
@@ -27,4 +28,14 @@ export function taskToDto(task) {
     subtitles_url: subtitlesUrl,
     export_url: exportUrl,
   };
+}
+
+export function taskToDto(task) {
+  const shared = sharedTaskFields(task);
+  if (!shared) return null;
+  return { ...shared, subtitles: task.subtitles || [] };
+}
+
+export function taskToSummaryDto(task) {
+  return sharedTaskFields(task);
 }

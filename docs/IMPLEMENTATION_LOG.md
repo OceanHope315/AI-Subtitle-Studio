@@ -36,3 +36,9 @@
 | `ai_service/evaluation/visual_timeline.py`、`scripts/evaluate-visual-timeline.py` | 单调一对一事件匹配、文本/检测/帧边界/Tier A 指标 | 用可复现视觉真值评价最终产物 |
 | `data/ground_truth/test-video.visual.json` | 完整 2,380 帧的 58 个视觉状态、位置、边界和 A/B 可信等级 | 将视觉真值与 ASR 参考彻底分离 |
 | `data/subtitles/test-video/diagnostics.json` | ROI、80 次粗 OCR、20 次发现 OCR、137 次边界 OCR 及最终事件 | 保存完整真实回归的可审计证据 |
+| `frontend/src/App.jsx`、`pages/TasksPage.jsx`、`pages/NewTaskPage.jsx`、`pages/TaskWorkspace.jsx` | 正式 `/tasks` 路由、轻量任务中心、全状态恢复、归档与安全离开 | 修复 query/replaceState 导致的历史任务不可恢复 |
+| `frontend/src/components/VideoPanel.jsx`、`Timeline.jsx`、`pages/EditorPage.jsx` | `requestVideoFrameCallback(mediaTime)`、RAF 回退、二分 cue 命中、帧步进与全片/5秒/1秒缩放 | 消除 `timeupdate` 带来的 100–200ms 预览滞后 |
+| `frontend/src/utils/draftStore.js`、`SafetyDialogs.jsx` | 750ms 自动保存、IndexedDB task 草稿、恢复提示、saving/synced/offline/conflict 状态 | 防止网络失败、刷新和离开页面丢失字幕修改 |
+| `backend/routes/tasks.js`、`services/taskStore.js`、`models/VideoTask.js` | 分页/筛选/搜索摘要、软归档、revision/If-Match 原子更新与 409 | 列表不再传全部字幕，多标签不再静默覆盖 |
+| `ai_service/video/reader.py`、`schemas.py`、`pipeline.py` | PyAV 呈现顺序 PTS、非零起点/VFR、独占结束帧和原始 PTS cue | 移除 `frame_index/fps` 作为真实时间基的线性漂移风险 |
+| P0-A/P0-B 测试 | AI 70、Backend 17、Frontend 40；真实隔离 HTTP 恢复/冲突/重启；目标边界相邻帧复核 | 固化本轮时间校准、任务恢复和保存安全 |

@@ -1,6 +1,6 @@
 # AI Subtitle Studio 测试报告
 
-测试日期：2026-07-16（Asia/Shanghai）
+测试日期：2026-07-16 至 2026-07-17（Asia/Shanghai）
 
 ## 1. 结论
 
@@ -136,9 +136,9 @@ python scripts\evaluate-visual-timeline.py `
 
 | 层 | 命令 | 结果 |
 | --- | --- | --- |
-| AI | `python -m pytest ai_service/tests -q` | 67/67 通过 |
-| Backend | `npm test` | 15/15 通过 |
-| Frontend | `npm run test` | 26/26 通过 |
+| AI | `python -m pytest ai_service/tests -q` | 70/70 通过 |
+| Backend | `npm test` | 17/17 通过 |
+| Frontend | `npm run test` | 40/40 通过 |
 | Frontend lint | `npm run lint` | 通过，0 warning |
 | Frontend build | `npm run build` | 通过 |
 
@@ -163,3 +163,72 @@ YOLO 可以作为未来的可选前置能力，用于自动建议字幕区域；
 - Tier B 边界是真值估计，故其 ±18 帧范围内误差应结合标注不确定度解释。
 - CPU 耗时受模型缓存、机器、分辨率、ROI 面积和字幕密度影响，不是性能 SLA。
 - `testVideo.txt` 是语音参考；视觉字幕和同期语音内容不同，二者必须分别评估。
+
+## 9. P0-A 时间轴校准（2026-07-17）
+
+前端自动化确认预览不再注册 `timeupdate` 处理器：优先消费
+`requestVideoFrameCallback` 的 `mediaTime`，不支持时才使用
+`requestAnimationFrame + currentTime`。测试还覆盖 `[start,end)` 二分查找、只有 cue id
+变化才更新 React、播放/暂停/seek 立即同步、29.97 FPS 帧步进，以及全片/5 秒/1 秒视图。
+
+AI 读取层已从 OpenCV 的 `frame_index / fps` 切到 PyAV PTS。新增真实编码回归覆盖
+30000/1001、60000/1001 CFR，以及 non-zero PTS + VFR；cue 保存
+`start_frame/end_frame_exclusive/start_pts/end_pts/time_base`，秒值由 PTS 派生。
+
+目标任务 `f8c9a5b3-9686-41f3-9bce-7766f5290cc9` 的源视频实测：
+
+| 项目 | 实测 |
+| --- | ---: |
+| 解码帧数 | 1,576 |
+| FPS | 29.97 |
+| time base | 1/11988 |
+| start PTS / start time | 400 / 0.0333667s |
+| PTS 派生时长 | 52.5859193s |
+| VFR | 否 |
+| `AND HEAL THEM` 最后一帧 | 762 |
+| `WHEN YOU CAN` 第一帧 | 763 |
+| 独占切换边界 | 25.4587921s |
+| 相对旧 25.460s 边界误差 | 1.208ms |
+| 一个呈现帧 | 33.367ms |
+
+抽取并人工查看相邻源帧 762/763，画面确实分别为 `AND HEAL THEM` 和
+`WHEN YOU CAN`。两条 cue 的 `end_frame_exclusive/start_frame` 均为 763，
+`end_pts/start_pts` 均为 305600，没有间隙、重叠或随时长增长的误差项。
+
+## 10. P0-B 任务恢复与保存安全
+
+新增自动化覆盖正式路由、Logo、前进/后退、全部任务状态、分页/筛选/搜索摘要、软归档、
+750ms 自动保存、IndexedDB 草稿恢复、离线状态、安全离开对话框和多标签 revision 冲突。
+
+真实 HTTP 端到端使用隔离的 `tasks.json` 副本和隔离字幕目录，视频只读指向现有真实
+`data/videos`；原始任务库及产物没有写入。结果：
+
+- `/api/tasks?limit=100` 返回 10 个轻量摘要与 pagination，响应项不含 `subtitles`。
+- 任务中心对应的历史任务为 `completed`，摘要显示 88 条字幕；详情字幕接口恢复 88 条。
+- 首次保存 revision 从 0 原子更新到 1；模拟第二标签继续使用 revision 0，服务返回
+  `409 REVISION_CONFLICT`，且 revision 1 的文本没有被覆盖。
+- 终止并重新启动真实 Express 进程后，任务仍为 `completed`，88 条字幕和 revision 1
+  均从隔离 JSON 文件恢复。
+- Vite 对 `/tasks`、`/tasks/new`、`/tasks/:id` 三个直接 URL 均返回 200；组件路由测试
+  进一步验证 Logo、back、forward 能恢复相应页面。
+
+本机曾成功启动 Edge 150/CDP 1.3，但持续无头浏览器进程在应用审批额度耗尽后无法再次
+授权，因此没有把“真实 Edge 内的完整点击回放”计为通过。播放器误差验收由真实源视频
+相邻帧/PTS 检查和浏览器 API 组件测试共同完成；这是本轮仍需在可用 GUI/CI 浏览器环境
+复跑的限制，不影响真实 HTTP、PTS 和自动化结论。
+
+## 11. P0 自动化基线与结果
+
+修改前实际基线为 AI 67、Backend 15、Frontend 26，compile/lint/build 通过。修改后：
+
+| 层 | 命令 | 结果 |
+| --- | --- | --- |
+| AI | `python -m pytest ai_service/tests -q` | 70/70 通过 |
+| AI compile | `python -m compileall -q ai_service` | 通过 |
+| Backend | `npm test` | 17/17 通过 |
+| Frontend | `npm run test` | 40/40 通过 |
+| Frontend lint | `npm run lint` | 通过，0 warning |
+| Frontend build | `npm run build` | 通过 |
+
+测试新增量为 AI +3、Backend +2、Frontend +14；没有修改 ROI、视觉时间轴、OCR/Whisper
+约束相关预期，也没有引入 YOLO、实时进度、渐进编辑或翻译。

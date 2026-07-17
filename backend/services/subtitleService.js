@@ -68,6 +68,21 @@ function normalizeOne(item, index, strict) {
     ? null
     : String(item.source).slice(0, 64);
 
+  const optionalInteger = (value, name, minimum = null) => {
+    if (value === undefined || value === null) return null;
+    const parsed = Number(value);
+    if (!Number.isSafeInteger(parsed) || (minimum !== null && parsed < minimum)) {
+      if (strict) throw new AppError(400, `subtitles[${index}].${name} is invalid`, "INVALID_SUBTITLES");
+      return null;
+    }
+    return parsed;
+  };
+  const startFrame = optionalInteger(item.start_frame, "start_frame", 0);
+  const endFrameExclusive = optionalInteger(item.end_frame_exclusive, "end_frame_exclusive", 1);
+  if (strict && startFrame !== null && endFrameExclusive !== null && endFrameExclusive <= startFrame) {
+    throw new AppError(400, `subtitles[${index}] has invalid exclusive frame boundaries`, "INVALID_SUBTITLES");
+  }
+
   return {
     id,
     text: cleanText(item.text),
@@ -76,6 +91,11 @@ function normalizeOne(item, index, strict) {
     confidence,
     position: normalizePosition(item.position, strict),
     source,
+    start_frame: startFrame,
+    end_frame_exclusive: endFrameExclusive,
+    start_pts: optionalInteger(item.start_pts, "start_pts"),
+    end_pts: optionalInteger(item.end_pts, "end_pts"),
+    time_base: item.time_base == null ? null : String(item.time_base).slice(0, 32),
   };
 }
 

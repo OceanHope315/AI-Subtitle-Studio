@@ -28,6 +28,28 @@ export function normalizeSubtitles(subtitles = []) {
     .sort((a, b) => a.start_time - b.start_time || a.end_time - b.end_time)
 }
 
+// Subtitles are normalized into start-time order. Boundaries intentionally use
+// [start, end): the outgoing cue disappears on the exact incoming frame.
+export function findSubtitleAtTime(subtitles, mediaTime) {
+  let low = 0
+  let high = subtitles.length - 1
+  let candidate = -1
+
+  while (low <= high) {
+    const middle = (low + high) >> 1
+    if (subtitles[middle].start_time <= mediaTime) {
+      candidate = middle
+      low = middle + 1
+    } else {
+      high = middle - 1
+    }
+  }
+
+  if (candidate < 0) return null
+  const subtitle = subtitles[candidate]
+  return mediaTime < subtitle.end_time ? subtitle : null
+}
+
 export function toApiSubtitles(subtitles) {
   return [...subtitles]
     .sort((a, b) => a.start_time - b.start_time || a.end_time - b.end_time)

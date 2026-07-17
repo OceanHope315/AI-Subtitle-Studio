@@ -338,7 +338,8 @@ class SubtitlePipeline:
                 warnings.append(str(exc))
             callback(94, f"Whisper 辅助完成：{len(whisper_segments)} 个语音片段")
 
-        subtitles = fuse_with_whisper(ocr_events, whisper_segments)
+        ocr_events = reader.attach_timebase(ocr_events)
+        subtitles = reader.attach_timebase(fuse_with_whisper(ocr_events, whisper_segments))
         if not subtitles:
             raise RuntimeError("框选区域内未生成视觉字幕，请检查字幕区域、语言和 OCR 模型")
 
@@ -438,15 +439,12 @@ def _build_diagnostics(
 ) -> dict:
     events = []
     for event in final_events:
-        start_frame = max(
+        start_frame = event.start_frame if event.start_frame is not None else max(
             0, min(metadata.frame_count - 1, int(round(event.start_time * metadata.fps)))
         )
-        end_frame = max(
-            start_frame,
-            min(
-                metadata.frame_count - 1,
-                int(math.ceil(event.end_time * metadata.fps) - 1),
-            ),
+        end_frame_exclusive = event.end_frame_exclusive or max(
+            start_frame + 1,
+            min(metadata.frame_count, int(math.ceil(event.end_time * metadata.fps))),
         )
         events.append(
             {
@@ -455,7 +453,11 @@ def _build_diagnostics(
                 "start_time": event.start_time,
                 "end_time": event.end_time,
                 "start_frame": start_frame,
-                "end_frame": end_frame,
+                "end_frame": end_frame_exclusive - 1,
+                "end_frame_exclusive": end_frame_exclusive,
+                "start_pts": event.start_pts,
+                "end_pts": event.end_pts,
+                "time_base": event.time_base,
                 "confidence": event.confidence,
                 "position": event.position,
             }
@@ -470,6 +472,10 @@ def _build_diagnostics(
             "source_fps": metadata.fps,
             "frame_count": metadata.frame_count,
             "duration": metadata.duration,
+            "time_base": metadata.time_base,
+            "start_pts": metadata.start_pts,
+            "start_time": metadata.start_time,
+            "variable_frame_rate": metadata.variable_frame_rate,
         },
         "sampling": {
             "sample_fps": sample_fps,

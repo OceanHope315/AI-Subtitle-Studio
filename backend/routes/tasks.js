@@ -5,7 +5,7 @@ import path from "node:path";
 import express from "express";
 import multer from "multer";
 import { AppError, asyncHandler } from "../utils/errors.js";
-import { taskToDto } from "../utils/taskDto.js";
+import { taskToDto, taskToSummaryDto } from "../utils/taskDto.js";
 import {
   isMp4File,
   parseByteRange,
@@ -16,6 +16,7 @@ import { normalizeSubtitles } from "../services/subtitleService.js";
 
 const TASK_ID_PATTERN = /^[a-f\d]{8}-[a-f\d]{4}-[1-5][a-f\d]{3}-[89ab][a-f\d]{3}-[a-f\d]{12}$/i;
 const ACCEPTED_MP4_MIME_TYPES = new Set(["video/mp4", "application/mp4", "application/octet-stream"]);
+const TASK_STATUSES = new Set(["awaiting_roi", "queued", "processing", "completed", "failed"]);
 export const MIN_ROI_DIMENSION = 0.01;
 
 function validateTaskId(value) {
@@ -134,6 +135,8 @@ export function createTasksRouter({ store, processor, artifactService, config })
             mimetype: "video/mp4",
           },
           subtitles: [],
+          revision: 0,
+          archivedAt: null,
           error: null,
           artifacts: {},
           aiJobId: null,
@@ -179,9 +182,22 @@ export function createTasksRouter({ store, processor, artifactService, config })
 
   router.get(
     "/",
-    asyncHandler(async (_req, res) => {
-      const tasks = await store.list();
-      res.json({ tasks: tasks.map(taskToDto) });
+    asyncHandler(async (req, res) => {
+      const page = Number(req.query.page || 1);
+      const limit = Number(req.query.limit || 20);
+      const status = String(req.query.status || "").trim() || null;
+      const search = String(req.query.search || "").trim().slice(0, 100);
+      if (!Number.isInteger(page) || page < 1 || !Number.isInteger(limit) || limit < 1 || limit > 100) {
+        throw new AppError(400, "page and limit must be positive integers (limit <= 100)", "INVALID_PAGINATION");
+      }
+      if (status && !TASK_STATUSES.has(status)) {
+        throw new AppError(400, "Invalid task status filter", "INVALID_STATUS");
+      }
+      const result = await store.listSummaries({ page, limit, status, search });
+      res.json({
+        tasks: result.tasks.map(taskToSummaryDto),
+        pagination: { page, limit, total: result.total, pages: Math.ceil(result.total / limit) },
+      });
     }),
   );
 
@@ -189,7 +205,9 @@ export function createTasksRouter({ store, processor, artifactService, config })
     "/:id/subtitles",
     asyncHandler(async (req, res) => {
       const task = await findTaskOrThrow(store, req.params.id);
-      res.json({ subtitles: task.subtitles || [] });
+      const revision = Number.isInteger(task.revision) ? task.revision : 0;
+      res.set("ETag", `\"${revision}\"`);
+      res.json({ subtitles: task.subtitles || [], revision });
     }),
   );
 
@@ -200,10 +218,41 @@ export function createTasksRouter({ store, processor, artifactService, config })
       if (!req.body || !("subtitles" in req.body)) {
         throw new AppError(400, "Request body must contain subtitles", "SUBTITLES_REQUIRED");
       }
+      const ifMatch = req.get("If-Match");
+      const expectedValue = ifMatch?.replace(/^W\//, "").replace(/^\"|\"$/g, "")
+        ?? req.body.expected_revision;
+      const expectedRevision = Number(expectedValue);
+      if (!Number.isInteger(expectedRevision) || expectedRevision < 0) {
+        throw new AppError(
+          428,
+          "If-Match or expected_revision is required",
+          "REVISION_REQUIRED",
+          { revision: Number.isInteger(task.revision) ? task.revision : 0 },
+        );
+      }
       const subtitles = normalizeSubtitles(req.body.subtitles);
-      const updated = await store.update(task.id, { subtitles });
-      await artifactService.write(task.id, updated.subtitles);
-      res.json({ subtitles: updated.subtitles });
+      const result = await store.updateSubtitles(task.id, expectedRevision, subtitles);
+      if (result.conflict) {
+        const currentRevision = Number.isInteger(result.task?.revision) ? result.task.revision : 0;
+        throw new AppError(
+          409,
+          "Subtitles were updated in another tab",
+          "REVISION_CONFLICT",
+          { revision: currentRevision },
+        );
+      }
+      await artifactService.write(task.id, result.task.subtitles);
+      res.set("ETag", `\"${result.task.revision}\"`);
+      res.json({ subtitles: result.task.subtitles, revision: result.task.revision });
+    }),
+  );
+
+  router.patch(
+    "/:id/archive",
+    asyncHandler(async (req, res) => {
+      const task = await findTaskOrThrow(store, req.params.id);
+      const archived = await store.archive(task.id);
+      res.json(taskToSummaryDto(archived));
     }),
   );
 

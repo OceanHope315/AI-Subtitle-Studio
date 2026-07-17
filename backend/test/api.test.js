@@ -95,6 +95,7 @@ describe("tasks API", () => {
     ];
     const saved = await request(app)
       .put(`/api/tasks/${created.body.id}/subtitles`)
+      .set("If-Match", '"0"')
       .send({ subtitles })
       .expect(200);
     assert.equal(saved.body.subtitles[0].text, subtitles[0].text);
@@ -247,8 +248,53 @@ describe("tasks API", () => {
 
     await request(app)
       .put(`/api/tasks/${created.body.id}/subtitles`)
+      .set("If-Match", '"0"')
       .send({ subtitles: [{ text: "bad", start_time: 5, end_time: 2 }] })
       .expect(400);
+  });
+
+  test("returns lightweight paginated summaries and archives without deleting artifacts", async () => {
+    const first = await request(app)
+      .post("/api/tasks")
+      .attach("video", mp4Fixture(), { filename: "search-first.mp4", contentType: "video/mp4" })
+      .expect(201);
+    const second = await request(app)
+      .post("/api/tasks")
+      .attach("video", mp4Fixture(), { filename: "other.mp4", contentType: "video/mp4" })
+      .expect(201);
+
+    const listed = await request(app).get("/api/tasks?limit=1&page=1&status=awaiting_roi&search=search").expect(200);
+    assert.equal(listed.body.tasks.length, 1);
+    assert.equal(listed.body.tasks[0].id, first.body.id);
+    assert.equal("subtitles" in listed.body.tasks[0], false);
+    assert.deepEqual(listed.body.pagination, { page: 1, limit: 1, total: 1, pages: 1 });
+
+    const storedBeforeArchive = await store.findById(first.body.id);
+    await request(app).patch(`/api/tasks/${first.body.id}/archive`).expect(200);
+    const afterArchive = await request(app).get("/api/tasks?limit=100").expect(200);
+    assert.equal(afterArchive.body.tasks.some((task) => task.id === first.body.id), false);
+    assert.equal(afterArchive.body.tasks.some((task) => task.id === second.body.id), true);
+    await request(app).get(`/api/tasks/${first.body.id}`).expect(200);
+    assert.equal((await fs.stat(storedBeforeArchive.videoPath)).isFile(), true);
+  });
+
+  test("uses subtitle revisions to reject stale writes from a second tab", async () => {
+    const created = await request(app)
+      .post("/api/tasks")
+      .attach("video", mp4Fixture(), { filename: "conflict.mp4", contentType: "video/mp4" })
+      .expect(201);
+    const endpoint = `/api/tasks/${created.body.id}/subtitles`;
+    const firstVersion = [{ id: "one", text: "first tab", start_time: 0, end_time: 1 }];
+    const staleVersion = [{ id: "two", text: "second tab stale", start_time: 0, end_time: 1 }];
+
+    const saved = await request(app).put(endpoint).set("If-Match", '"0"').send({ subtitles: firstVersion }).expect(200);
+    assert.equal(saved.body.revision, 1);
+    const conflict = await request(app).put(endpoint).set("If-Match", '"0"').send({ subtitles: staleVersion }).expect(409);
+    assert.equal(conflict.body.error.code, "REVISION_CONFLICT");
+    assert.equal(conflict.body.error.details.revision, 1);
+    const current = await request(app).get(endpoint).expect(200);
+    assert.equal(current.body.subtitles[0].text, "first tab");
+    assert.equal(current.body.revision, 1);
   });
 
   test("reports health and JSON persistence mode", async () => {

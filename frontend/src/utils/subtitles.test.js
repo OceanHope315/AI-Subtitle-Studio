@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  findSubtitleAtTime,
   formatCompactTime,
   formatTimestamp,
   normalizeSubtitles,
@@ -21,6 +22,17 @@ describe('subtitle time utilities', () => {
     expect(parseTimestamp('00:01:02,250')).toBe(62.25)
     expect(parseTimestamp('00:72.000')).toBeNull()
     expect(parseTimestamp('invalid')).toBeNull()
+  })
+
+  it('finds ordered cues with a binary search and uses an exclusive end boundary', () => {
+    const cues = Array.from({ length: 10_000 }, (_, index) => ({
+      _clientId: `cue-${index}`,
+      start_time: index,
+      end_time: index + 0.5,
+    }))
+    expect(findSubtitleAtTime(cues, 6789.25)?._clientId).toBe('cue-6789')
+    expect(findSubtitleAtTime(cues, 6789.5)).toBeNull()
+    expect(findSubtitleAtTime(cues, -1)).toBeNull()
   })
 })
 

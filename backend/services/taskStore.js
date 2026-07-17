@@ -79,6 +79,21 @@ export class FileTaskStore {
       .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)));
   }
 
+  async listSummaries({ page = 1, limit = 20, status = null, search = "", includeArchived = false } = {}) {
+    const needle = String(search).trim().toLocaleLowerCase();
+    const matching = [...this.tasks.values()]
+      .filter((task) => includeArchived || !task.archivedAt)
+      .filter((task) => !status || task.status === status)
+      .filter((task) => !needle || String(task.filename || "").toLocaleLowerCase().includes(needle))
+      .sort((left, right) => String(right.updatedAt || right.createdAt)
+        .localeCompare(String(left.updatedAt || left.createdAt)));
+    const offset = (page - 1) * limit;
+    return {
+      tasks: matching.slice(offset, offset + limit).map(clone),
+      total: matching.length,
+    };
+  }
+
   async findById(taskId) {
     return clone(this.tasks.get(taskId) || null);
   }
@@ -94,6 +109,51 @@ export class FileTaskStore {
         id: current.id,
         updatedAt: new Date().toISOString(),
       });
+      this.tasks.set(taskId, next);
+      try {
+        await this.persist();
+      } catch (error) {
+        this.tasks.set(taskId, previous);
+        throw error;
+      }
+      return clone(next);
+    });
+  }
+
+  async updateSubtitles(taskId, expectedRevision, subtitles) {
+    return this.enqueueWrite(async () => {
+      const current = this.tasks.get(taskId);
+      if (!current) return { task: null, conflict: false };
+      const revision = Number.isInteger(current.revision) ? current.revision : 0;
+      if (revision !== expectedRevision) {
+        return { task: clone(current), conflict: true };
+      }
+      const previous = clone(current);
+      const next = normalizeDates({
+        ...current,
+        subtitles: clone(subtitles),
+        revision: revision + 1,
+        updatedAt: new Date().toISOString(),
+      });
+      this.tasks.set(taskId, next);
+      try {
+        await this.persist();
+      } catch (error) {
+        this.tasks.set(taskId, previous);
+        throw error;
+      }
+      return { task: clone(next), conflict: false };
+    });
+  }
+
+  async archive(taskId) {
+    return this.enqueueWrite(async () => {
+      const current = this.tasks.get(taskId);
+      if (!current) return null;
+      if (current.archivedAt) return clone(current);
+      const previous = clone(current);
+      const now = new Date().toISOString();
+      const next = normalizeDates({ ...current, archivedAt: now, updatedAt: now });
       this.tasks.set(taskId, next);
       try {
         await this.persist();
@@ -181,6 +241,32 @@ export class MongooseTaskStore {
     return documents.map(mongooseTaskToPlain);
   }
 
+  async listSummaries({ page = 1, limit = 20, status = null, search = "", includeArchived = false } = {}) {
+    const filter = {};
+    if (!includeArchived) filter.archivedAt = null;
+    if (status) filter.status = status;
+    if (search) filter.filename = { $regex: String(search).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
+    const [result] = await this.model.aggregate([
+      { $match: filter },
+      { $sort: { updatedAt: -1 } },
+      {
+        $facet: {
+          tasks: [
+            { $skip: (page - 1) * limit },
+            { $limit: limit },
+            { $set: { subtitleCount: { $size: { $ifNull: ["$subtitles", []] } } } },
+            { $unset: "subtitles" },
+          ],
+          count: [{ $count: "total" }],
+        },
+      },
+    ]);
+    return {
+      tasks: (result?.tasks || []).map(mongooseTaskToPlain),
+      total: result?.count?.[0]?.total || 0,
+    };
+  }
+
   async findById(taskId) {
     return mongooseTaskToPlain(await this.model.findOne({ taskId }));
   }
@@ -194,6 +280,33 @@ export class MongooseTaskStore {
     const document = await this.model.findOneAndUpdate(
       { taskId },
       { $set: safePatch },
+      { new: true, runValidators: true },
+    );
+    return mongooseTaskToPlain(document);
+  }
+
+  async updateSubtitles(taskId, expectedRevision, subtitles) {
+    const revisionFilter = expectedRevision === 0
+      ? { $or: [{ revision: 0 }, { revision: { $exists: false } }] }
+      : { revision: expectedRevision };
+    const document = await this.model.findOneAndUpdate(
+      { taskId, ...revisionFilter },
+      {
+        $set: { subtitles: clone(subtitles), updatedAt: new Date() },
+        $inc: { revision: 1 },
+      },
+      { new: true, runValidators: true },
+    );
+    if (document) return { task: mongooseTaskToPlain(document), conflict: false };
+    const current = await this.findById(taskId);
+    return { task: current, conflict: Boolean(current) };
+  }
+
+  async archive(taskId) {
+    const now = new Date();
+    const document = await this.model.findOneAndUpdate(
+      { taskId },
+      { $set: { archivedAt: now, updatedAt: now } },
       { new: true, runValidators: true },
     );
     return mongooseTaskToPlain(document);
