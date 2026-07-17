@@ -347,3 +347,4 @@ def test_default_discovery_budget_can_rank_more_than_twelve_intervals(tmp_path: 
     )
     assert len(indices) == 24
     assert len(indices) > 12
+    assert indices == sorted(indices)

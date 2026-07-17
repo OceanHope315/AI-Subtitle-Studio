@@ -136,9 +136,9 @@ python scripts\evaluate-visual-timeline.py `
 
 | 层 | 命令 | 结果 |
 | --- | --- | --- |
-| AI | `python -m pytest ai_service/tests -q` | 70/70 通过 |
-| Backend | `npm test` | 17/17 通过 |
-| Frontend | `npm run test` | 40/40 通过 |
+| AI | `python -m pytest ai_service/tests -q` | 80/80 通过 |
+| Backend | `npm test` | 27/27 通过 |
+| Frontend | `npm run test` | 62/62 通过 |
 | Frontend lint | `npm run lint` | 通过，0 warning |
 | Frontend build | `npm run build` | 通过 |
 
@@ -231,4 +231,94 @@ AI 读取层已从 OpenCV 的 `frame_index / fps` 切到 PyAV PTS。新增真实
 | Frontend build | `npm run build` | 通过 |
 
 测试新增量为 AI +3、Backend +2、Frontend +14；没有修改 ROI、视觉时间轴、OCR/Whisper
-约束相关预期，也没有引入 YOLO、实时进度、渐进编辑或翻译。
+约束相关预期，也没有引入 YOLO、实时进度、渐进编辑或翻译。以上仅是 P0 当时的历史
+基线；当前 P1-A 结果见下一节。
+
+## 12. P1-A 可视化分析进度（2026-07-17）
+
+### 12.1 自动化回归
+
+所有测试都将 `DATA_DIR` 指向工作区内的隔离临时目录；没有把测试 job、视频或字幕写入
+现有 `data`。
+
+| 层 | 命令 | 最终结果 |
+| --- | --- | --- |
+| AI | `cd ai_service; python -m pytest tests -q` | 80/80 通过 |
+| AI compile | `python -m compileall ai_service` | exit 0 |
+| Backend | `cd backend; npm test` | 27/27 通过 |
+| Frontend | `cd frontend; npm run test` | 62/62 通过（14 files） |
+| Frontend lint | `npm run lint` | 通过，0 warning |
+| Frontend build | `npm run build` | 通过，51 modules |
+| Diff | `git diff --check` | 通过（仅 Git 的 CRLF 提示） |
+
+新增覆盖事件顺序与 JSONL 重启恢复、坏尾修复、JPEG 限频/环形/evidence、真实 PTS 和
+全局 OCR 坐标、manifest 失败成对回滚、可观测性写入失败不阻断任务、重复崩溃下唯一
+终态、成功提交恢复、启动清扫且 import/测试收集不触碰真实 job、SSE cursor/new-run/去重/
+`has_more`、共享轮询、上游错误、慢消费者背压、JPEG 代理、任务轻量快照、前端 SSE
+解析与有限退避、每次真正推进游标后重置连续失败预算、同游标任务快照不回退 live 状态、
+刷新恢复、黑边 overlay、图片预加载失败、旧图与 OCR 事实同帧，以及 reduced-motion。
+
+### 12.2 真实 PaddleOCR + Express + Edge 端到端
+
+验收全程使用独立 AI/Backend 数据目录和独立端口。样片读取自现有视频但只复制到隔离
+目录：16,794,732 bytes，1080×1920，252 帧，4.2042 秒，59.9401 FPS，H.264，
+`time_base=1/60000`，`start_pts=960`；ROI 为
+`{x:0.08,y:0.52,width:0.84,height:0.24}`，Whisper 关闭。
+
+最终代码的快速协议回归使用 1 FPS、关闭短事件发现、每边界 1 次 OCR。它不是准确率
+基准（因此生成 5 条，而上面的 2 FPS 完整流程在同片生成 7 条），结果如下：
+
+- 第一个 SSE 客户端收到 seq 1–4 和首张真实 OCR 帧后主动关闭。该帧为 frame 0、
+  PTS 960、`1/60000`，并带真实 PaddleOCR 候选和随机 preview ID；后台任务未取消。
+- 新开的真实 Edge 页面从任务快照与 SSE 恢复到 boundary refinement。截图实见原帧、
+  ROI 放大图、OCR 框/文字/置信度、frame 233、PTS 234193、媒体时间 3.887 秒、已处理
+  7/10、字幕事件 5、事件游标 39 和“连接已恢复”；旧 `subtitle_count=0` 未覆盖真实计数。
+- 用 `Last-Event-ID: b78dd03147434cff9b43d947fafd20f1:4` 续接时，背压安全断流后
+  自动按 5–28、29–52、53–54 三段补齐；50 个补发事件连续、唯一、无倒退，最终收到
+  `job.completed`（5 条）。coarse OCR 与 boundary refinement 各自的真实 frame/媒体时间
+  单调；跨 stage 的 seek 保留真实 PTS，不伪造全局递增媒体时间。
+- 15 个 `cue.upserted` 均带精确 `detected_cue_count=5`。任务 JSON 只含 seq 54 的轻量
+  快照、最新 frame seq 43 和最新 preview frame seq 43，不含 `events` 数组。
+
+修复前的首轮 2 FPS 验收也真实完成：76 个事件、69.147 秒、7 条字幕；从 seq 4 经
+4 个 SSE 连接完整恢复到 seq 76。该轮发现“轮询 DTO 的处理中 subtitle_count=0 覆盖
+事件计数”的竞争，随后修复并以最终轮 Edge 截图和自动化用例复验。
+
+### 12.3 图片、清理与安全
+
+- 原帧和 ROI 均为真实 JPEG；首轮人工查看可读到 `USE THEM TO ATTACK`，ROI 与 OCR
+  框位置一致。前端最多保留 5 个缩略图引用，AI 普通预览最多 8 个 bundle。
+- 最终轮终态后普通 preview 目录为 0 文件，首张普通 preview 返回 404；边界 evidence
+  保留 18 张 JPEG、694,900 bytes，仍可取回。
+- 对 evidence 发送 `Range: bytes=0-9` 仍返回完整 `200 OK`、`Content-Length: 39256`、
+  `Accept-Ranges: none`，避免分片 JPEG/缓存语义混乱。
+- 完整事件 JSONL 中没有 Windows 绝对路径；`job.completed.artifacts` 仅列逻辑产物名。
+  preview/task/run ID 均先做格式与归属校验，图片响应固定为 `image/jpeg` 和 `nosniff`。
+
+### 12.4 性能、内存和存储边界
+
+最终真实轮从首事件到终态为 40.026 秒，写 54 个事件；JSONL 为 34,614 bytes，普通
+预览终态为 0，保留 evidence 为 694,900 bytes。首轮较高工作量配置的 JSONL 为
+49,870 bytes、evidence 为 1,022,873 bytes。两轮配置不同，因此不把 40.026/69.147 秒
+当成 P1-A 前后性能对比或 SLA。
+
+另做 7+7 次相同 4 秒合成视频的受控微基准（假 OCR，用于隔离可观测性开销）：无事件
+中位 30.16ms，启用 JSONL+JPEG 中位 99.53ms，绝对增加 69.37ms；Python `tracemalloc`
+峰值中位从 52.9KiB 到 311.2KiB，增加 258.3KiB。百分比为 +230% 是因为假 OCR 基线
+仅 30ms，不能外推到真实 PaddleOCR；有意义的是绝对开销和固定上限。OpenCV 的 native
+内存不完全计入 `tracemalloc`。
+
+中途字幕计数不再每帧重建完整 temporal graph，而在 observation 数 1/2/4/8/… 时更新，
+最终聚合和终态强制精确。这使额外聚合保持在最终聚合的数量级。热事件缓存终态释放，
+前端状态只保存一个最新 frame、一个最新有图 frame 和 5 张缩略图。
+
+当前 JSONL 与 evidence 没有 TTL/压缩/自动归档，是已记录的生产存储边界；普通预览已有
+环形上限和终态清理。P1-B“边分析边编辑”及翻译事件/翻译 UI 本轮明确未实现。
+
+### 12.5 原数据完整性
+
+验收前后 `data` 均为 96 个文件、429,437,352 bytes；按“相对路径 + size + 每文件
+SHA-256”排序生成的目录清单 SHA-256 前后均为
+`D4B1C4129A8A86D0F24A19E9107DAB88F084093A4F69E1C3A91367E6B3040D45`。
+`data/tasks.json` SHA-256 前后均为
+`B26A7E6174B331CD557B8AD0C28C2D078F0EC8C71719CABDD2B66ABD769E4977`。

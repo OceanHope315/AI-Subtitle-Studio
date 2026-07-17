@@ -34,6 +34,57 @@ function jobIdFromPayload(payload, taskId) {
   return String(payload?.job_id ?? payload?.id ?? payload?.task_id ?? taskId);
 }
 
+function progressSnapshotFromPayload(payload, currentSnapshot = null) {
+  const runId = typeof payload?.run_id === "string" ? payload.run_id : null;
+  const latestSeq = Number(payload?.latest_seq);
+  if (!runId || !Number.isSafeInteger(latestSeq) || latestSeq < 0) return null;
+  const canReuseEvent = currentSnapshot?.run_id === runId
+    && currentSnapshot?.latest_seq === latestSeq;
+  const latestEvent = payload.latest_event && typeof payload.latest_event === "object"
+    ? {
+      seq: payload.latest_event.seq,
+      task_id: payload.latest_event.task_id,
+      run_id: payload.latest_event.run_id,
+      type: payload.latest_event.type,
+      occurred_at: payload.latest_event.occurred_at,
+      payload: payload.latest_event.payload || {},
+      progress: payload.latest_event.progress,
+      message: payload.latest_event.message,
+    }
+    : (canReuseEvent ? currentSnapshot.latest_event : null);
+  const latestFrameEvent = payload.latest_frame_event && typeof payload.latest_frame_event === "object"
+    ? {
+      seq: payload.latest_frame_event.seq,
+      task_id: payload.latest_frame_event.task_id,
+      run_id: payload.latest_frame_event.run_id,
+      type: payload.latest_frame_event.type,
+      occurred_at: payload.latest_frame_event.occurred_at,
+      payload: payload.latest_frame_event.payload || {},
+      progress: payload.latest_frame_event.progress,
+      message: payload.latest_frame_event.message,
+    }
+    : (currentSnapshot?.run_id === runId ? currentSnapshot.latest_frame_event || null : null);
+  const latestPreviewEvent = payload.latest_preview_event && typeof payload.latest_preview_event === "object"
+    ? {
+      seq: payload.latest_preview_event.seq,
+      task_id: payload.latest_preview_event.task_id,
+      run_id: payload.latest_preview_event.run_id,
+      type: payload.latest_preview_event.type,
+      occurred_at: payload.latest_preview_event.occurred_at,
+      payload: payload.latest_preview_event.payload || {},
+      progress: payload.latest_preview_event.progress,
+      message: payload.latest_preview_event.message,
+    }
+    : (currentSnapshot?.run_id === runId ? currentSnapshot.latest_preview_event || null : null);
+  return {
+    run_id: runId,
+    latest_seq: latestSeq,
+    latest_event: latestEvent,
+    latest_frame_event: latestFrameEvent,
+    latest_preview_event: latestPreviewEvent,
+  };
+}
+
 export class TaskProcessor {
   constructor({ store, aiClient, artifactService, config, logger = console }) {
     this.store = store;
@@ -89,6 +140,8 @@ export class TaskProcessor {
     if (Array.isArray(payload?.subtitles)) {
       patch.subtitles = normalizeSubtitles(payload.subtitles, { strict: false });
     }
+    const progressSnapshot = progressSnapshotFromPayload(payload, current.progressSnapshot);
+    if (progressSnapshot) patch.progressSnapshot = progressSnapshot;
 
     if (status === "completed") {
       patch.progress = 100;
@@ -160,3 +213,5 @@ export class TaskProcessor {
     }
   }
 }
+
+export { progressSnapshotFromPayload };

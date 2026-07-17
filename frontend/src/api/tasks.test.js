@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { API_BASE_URL, listTasks, saveSubtitles, startTaskRecognition } from './tasks'
+import {
+  API_BASE_URL,
+  getTaskPreviewUrl,
+  listTasks,
+  saveSubtitles,
+  startTaskRecognition,
+  streamTaskEvents,
+} from './tasks'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -63,5 +70,53 @@ describe('task summaries and revisions', () => {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'If-Match': '"7"' },
     }))
+  })
+})
+
+describe('task event stream', () => {
+  it('sends both recovery cursors and parses chunked typed SSE events', async () => {
+    const encoder = new TextEncoder()
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(': heartbeat\n\nid: run-1:8\nevent: stage.progress\ndata: {"seq":8,"run_id":"run-1",'))
+        controller.enqueue(encoder.encode('"payload":{"stage":"coarse_ocr"}}\n\nid: run-1:9\nevent: frame.analyzed\ndata: {"seq":9,"run_id":"run-1","payload":{"frame_index":42}}\n\n'))
+        controller.close()
+      },
+    })
+    const fetchMock = vi.fn().mockResolvedValue(new Response(body, {
+      status: 200,
+      headers: { 'Content-Type': 'text/event-stream' },
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+    const received = []
+    const onOpen = vi.fn()
+
+    await streamTaskEvents('task/one', {
+      afterSeq: 7,
+      lastEventId: 'run-1:7',
+      onOpen,
+      onEvent: (event) => received.push(event),
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${API_BASE_URL}/tasks/task%2Fone/events?after_seq=7`,
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Accept: 'text/event-stream',
+          'Last-Event-ID': 'run-1:7',
+        }),
+      }),
+    )
+    expect(onOpen).toHaveBeenCalledTimes(1)
+    expect(received).toEqual([
+      expect.objectContaining({ type: 'stage.progress', seq: 8, sse_id: 'run-1:8' }),
+      expect.objectContaining({ type: 'frame.analyzed', seq: 9, sse_id: 'run-1:9' }),
+    ])
+  })
+
+  it('builds encoded preview URLs scoped to the run', () => {
+    expect(getTaskPreviewUrl('task/one', 'preview one', 'run/one')).toBe(
+      `${API_BASE_URL}/tasks/task%2Fone/previews/preview%20one?run_id=run%2Fone`,
+    )
   })
 })

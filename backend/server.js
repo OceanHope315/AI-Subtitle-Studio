@@ -21,7 +21,7 @@ export async function startServer() {
   const artifactService = new SubtitleArtifactService(config.subtitleDir);
   const aiClient = new AiClient({ baseUrl: config.aiServiceUrl, timeoutMs: config.aiRequestTimeoutMs });
   const processor = new TaskProcessor({ store, aiClient, artifactService, config });
-  const app = createApp({ store, processor, artifactService, config });
+  const app = createApp({ store, processor, artifactService, config, aiClient });
 
   const server = await new Promise((resolve, reject) => {
     const listener = app.listen(config.port, config.host, () => resolve(listener));
@@ -37,6 +37,7 @@ export async function startServer() {
     if (closing) return;
     closing = true;
     console.log(`${signal} received; shutting down backend...`);
+    app.locals.progressEventHub?.close();
     await new Promise((resolve) => server.close(resolve));
     await store.close();
   }

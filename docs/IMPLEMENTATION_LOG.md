@@ -42,3 +42,9 @@
 | `backend/routes/tasks.js`、`services/taskStore.js`、`models/VideoTask.js` | 分页/筛选/搜索摘要、软归档、revision/If-Match 原子更新与 409 | 列表不再传全部字幕，多标签不再静默覆盖 |
 | `ai_service/video/reader.py`、`schemas.py`、`pipeline.py` | PyAV 呈现顺序 PTS、非零起点/VFR、独占结束帧和原始 PTS cue | 移除 `frame_index/fps` 作为真实时间基的线性漂移风险 |
 | P0-A/P0-B 测试 | AI 70、Backend 17、Frontend 40；真实隔离 HTTP 恢复/冲突/重启；目标边界相邻帧复核 | 固化本轮时间校准、任务恢复和保存安全 |
+| `ai_service/progress.py`、`job_store.py` | `run_id + seq` JSONL、最新事件/帧/有图帧快照、限频原帧/ROI JPEG、8 组环形缓冲、evidence 分层、重启终态恢复与热缓存释放 | 将真实 OCR 工作变成可回放、低内存的分析进度数据面 |
+| `ai_service/pipeline.py`、`video/reader.py` | 七阶段事件、OCR 后真实帧/PTS/候选、精确 cue 计数、边界 evidence；中途聚合改为 1/2/4/… 几何检查点 | 避免伪进度，并防止逐帧完整聚合放大长视频复杂度 |
+| `backend/services/progressEventHub.js`、`routes/tasks.js` | 共享 AI 轮询、SSE cursor 补发/去重/new-run 重置、heartbeat、错误/背压断流、完整 JPEG 安全代理 | 浏览器断线或刷新后恢复，且不取消后台任务、不把图片塞进 JSON |
+| `frontend/src/hooks/useTaskAnalysisProgress.js`、`utils/analysisProgress.js` | SSE parser、5 次有限退避、run/seq 去重、任务快照恢复、最近帧与最近有图帧分离、5 张缩略图上限 | 保持恢复正确与前端内存固定，避免旧图配新 OCR/PTS |
+| `frontend/src/components/ProcessingPanel.jsx`、`AnalysisFrame.jsx` | 真实原帧/ROI、OCR overlay/候选/置信度、PTS/time base、工作量、阶段轨道、连接状态、窄屏与 reduced-motion | 实现 P1-A“可视化分析进度”产品界面 |
+| P1-A 测试与真实 E2E | AI 80、Backend 27、Frontend 62；真实 PaddleOCR、Edge、SSE 强制断线续接、终态清理、Range 安全与性能微基准 | 用实际跨进程证据验证协议、恢复、图片、UI、存储和回归边界 |

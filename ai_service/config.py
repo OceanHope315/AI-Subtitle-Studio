@@ -51,6 +51,10 @@ class Settings:
     whisper_device: str = os.getenv("WHISPER_DEVICE", "cpu")
     whisper_compute_type: str = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
     max_upload_mb: int = int(os.getenv("MAX_UPLOAD_MB", "2048"))
+    preview_interval_seconds: float = float(os.getenv("PREVIEW_INTERVAL_SECONDS", "1.0"))
+    preview_ring_size: int = int(os.getenv("PREVIEW_RING_SIZE", "8"))
+    preview_max_long_edge: int = int(os.getenv("PREVIEW_MAX_LONG_EDGE", "800"))
+    preview_jpeg_quality: int = int(os.getenv("PREVIEW_JPEG_QUALITY", "80"))
     cors_origins: str = os.getenv(
         "CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
     )
@@ -67,8 +71,17 @@ class Settings:
     def jobs_dir(self) -> Path:
         return self.data_dir / "jobs"
 
+    @property
+    def progress_dir(self) -> Path:
+        return self.data_dir / "progress"
+
     def ensure_directories(self) -> None:
-        for directory in (self.videos_dir, self.subtitles_dir, self.jobs_dir):
+        for directory in (
+            self.videos_dir,
+            self.subtitles_dir,
+            self.jobs_dir,
+            self.progress_dir,
+        ):
             directory.mkdir(parents=True, exist_ok=True)
 
 

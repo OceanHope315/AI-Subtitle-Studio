@@ -90,6 +90,43 @@ GET /api/tasks/:id
 任务 DTO 同时返回 `id` 和 `task_id`，以及 `filename`、`status`、`progress`、
 `metadata`、`subtitles`、`error`、时间戳和各资源 URL。
 
+详情 DTO 还返回轻量的 `progress_snapshot`（`run_id`、`latest_seq`、
+`latest_event`、`latest_frame_event`、`latest_preview_event`）及同名顶层兼容字段。
+它只保存这些最新摘要，不会把事件历史或图片写入
+`tasks.json` / MongoDB。任务列表继续使用不含字幕和事件快照的摘要 DTO。
+
+### 实时分析事件（SSE）
+
+```http
+GET /api/tasks/:id/events?after_seq=12&run_id=<32-char-run-id>
+Last-Event-ID: <run-id>:12
+Accept: text/event-stream
+```
+
+后端轮询 AI 服务的 `GET /jobs/:task_id/events?after_seq=N`，并按任务复用一个事件
+Hub 向浏览器广播。SSE 的 `event` 是协议类型（如 `stage.progress`、
+`frame.analyzed`），`data` 是完整结构化事件，`id` 为 `<run_id>:<seq>`。连接可用
+查询参数 `after_seq`，或用纯数字 / `<run_id>:<seq>` 形式的 `Last-Event-ID` 补发；
+发现 run 已变化时会从新 run 的 0 号游标重放。重复的 `run_id + seq` 不会重复发送。
+
+响应使用 `text/event-stream`、`no-cache, no-transform`、`keep-alive`，默认每 15 秒
+发送注释心跳。浏览器断开后会释放订阅、心跳 timer，并在最后一个订阅离开时取消
+正在进行的 AI 事件请求；任务处理器本身不会被取消。轮询、心跳和浏览器重试间隔可由
+`AI_EVENT_POLL_INTERVAL_MS`、`SSE_HEARTBEAT_MS`、`SSE_RETRY_MS` 调整。
+AI 轮询错误或响应背压会主动结束该 SSE，让浏览器携带最后游标重连，而不是无限缓存。
+
+### 分析预览 JPEG
+
+```http
+GET /api/tasks/:id/previews/:previewId?run_id=<32-char-run-id>
+```
+
+`run_id` 和 `previewId` 都必须是 AI 服务生成的 32 位小写十六进制不透明 ID。
+Express 不接受文件路径，并将 task/run/preview 交给 AI 服务再次校验归属，然后只代理
+`image/jpeg`。响应采用 `private, max-age=300, immutable`；预览体积很小且 ID
+不可复用，因此 Range 请求明确返回 `200` 完整 JPEG（`Accept-Ranges: none`）。浏览器
+始终通过 Express 访问图片，不依赖 FastAPI 地址。
+
 ### 读取和保存字幕
 
 ```http
@@ -173,6 +210,16 @@ GET {AI_SERVICE_URL}/jobs/:id
 后端也兼容 `{ "job": {...} }` 和 `{ "data": {...} }` 包裹。服务重启时会自动恢复
 `queued` / `processing` 任务；轮询连续失败达到上限或总轮询超时后，任务会变为 `failed`。
 
+实时进度与图片使用：
+
+```http
+GET {AI_SERVICE_URL}/jobs/:task_id/events?after_seq=N
+GET {AI_SERVICE_URL}/jobs/:task_id/previews/:preview_id?run_id=<run_id>
+```
+
+事件响应为 `{ task_id, run_id, latest_seq, events }`，事件公共字段为
+`seq/task_id/run_id/type/occurred_at/payload`。图片不进入事件 JSON。
+
 ## CORS 和安全设置
 
 - 默认只允许 Vite 的 `localhost:5173` 与 `127.0.0.1:5173`。
@@ -188,4 +235,5 @@ npm test
 ```
 
 测试覆盖上传类型/大小验证、任务 CRUD、字幕校验与 SRT、JSON 文件重启持久化、
-AI job 同步，以及完整/Range 视频流。
+AI job 同步、完整/Range 视频流，以及 SSE 响应头、断线续传、新 run 恢复、重复去重、
+心跳、断开清理、预览 ID/路径安全和完整 JPEG 代理策略。

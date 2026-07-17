@@ -51,6 +51,7 @@ export const videoTaskSchema = new mongoose.Schema(
     error: { type: String, default: null },
     artifacts: { type: mongoose.Schema.Types.Mixed, default: {} },
     aiJobId: { type: String, default: null },
+    progressSnapshot: { type: mongoose.Schema.Types.Mixed, default: null },
   },
   {
     timestamps: true,

@@ -30,6 +30,10 @@ class SampledFrame:
     time_base: str | None = None
     roi_offset_y: int = 0
     roi_offset_x: int = 0
+    # OCR continues to receive only ``image`` (the ROI). Progress previews use
+    # this reference to the real, uncropped decoded frame. The ROI ndarray is a
+    # view, so retaining both does not duplicate the pixel buffer.
+    source_image: object | None = None
 
 
 class VideoReader:
@@ -112,7 +116,7 @@ class VideoReader:
                     next_sample += interval
                 image = frame.to_ndarray(format="bgr24")
                 crop, left, top = _crop_frame(image, normalized_roi)
-                yield self._sample(crop, timing, left, top)
+                yield self._sample(crop, timing, left, top, source_image=image)
 
     def frames_between(
         self,
@@ -246,11 +250,19 @@ class VideoReader:
                     continue
                 image = frame.to_ndarray(format="bgr24")
                 crop, left, top = _crop_frame(image, roi)
-                yield self._sample(crop, timing, left, top)
+                yield self._sample(crop, timing, left, top, source_image=image)
                 if timing.frame_index >= last_index:
                     break
 
-    def _sample(self, image, timing: FrameTiming, left: int, top: int) -> SampledFrame:
+    def _sample(
+        self,
+        image,
+        timing: FrameTiming,
+        left: int,
+        top: int,
+        *,
+        source_image=None,
+    ) -> SampledFrame:
         return SampledFrame(
             image=image,
             frame_index=timing.frame_index,
@@ -260,6 +272,7 @@ class VideoReader:
             time_base=_fraction_text(self._time_base),
             roi_offset_y=top,
             roi_offset_x=left,
+            source_image=source_image,
         )
 
     def _timestamps(self) -> list[float]:

@@ -10,6 +10,13 @@ function unwrapJobResponse(data) {
   return data;
 }
 
+function unwrapEventsResponse(data) {
+  if (data && typeof data === "object" && data.data && typeof data.data === "object") {
+    return data.data;
+  }
+  return data;
+}
+
 export function describeAiError(error) {
   if (axios.isAxiosError(error)) {
     const responseMessage = error.response?.data?.detail
@@ -69,6 +76,25 @@ export class AiClient {
     const response = await this.http.get(`/jobs/${encodeURIComponent(jobId)}`);
     return unwrapJobResponse(response.data);
   }
+
+  async getEvents(taskId, afterSeq = 0, { signal } = {}) {
+    const response = await this.http.get(`/jobs/${encodeURIComponent(taskId)}/events`, {
+      params: { after_seq: afterSeq },
+      signal,
+    });
+    return unwrapEventsResponse(response.data);
+  }
+
+  async getPreview(taskId, previewId, runId, { signal } = {}) {
+    return this.http.get(
+      `/jobs/${encodeURIComponent(taskId)}/previews/${encodeURIComponent(previewId)}`,
+      {
+        params: { run_id: runId },
+        responseType: "stream",
+        signal,
+      },
+    );
+  }
 }
 
-export { unwrapJobResponse };
+export { unwrapEventsResponse, unwrapJobResponse };

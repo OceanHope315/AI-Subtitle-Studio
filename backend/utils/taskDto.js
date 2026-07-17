@@ -33,7 +33,28 @@ function sharedTaskFields(task) {
 export function taskToDto(task) {
   const shared = sharedTaskFields(task);
   if (!shared) return null;
-  return { ...shared, subtitles: task.subtitles || [] };
+  const progressSnapshot = task.progressSnapshot && typeof task.progressSnapshot === "object"
+    ? {
+      run_id: task.progressSnapshot.run_id || null,
+      latest_seq: Number.isSafeInteger(task.progressSnapshot.latest_seq)
+        ? task.progressSnapshot.latest_seq
+        : 0,
+      latest_event: task.progressSnapshot.latest_event || null,
+      latest_frame_event: task.progressSnapshot.latest_frame_event || null,
+      latest_preview_event: task.progressSnapshot.latest_preview_event || null,
+    }
+    : null;
+  return {
+    ...shared,
+    subtitles: task.subtitles || [],
+    progress_snapshot: progressSnapshot,
+    run_id: progressSnapshot?.run_id || null,
+    latest_seq: progressSnapshot?.latest_seq || 0,
+    latest_event: progressSnapshot?.latest_event || null,
+    latest_frame_event: progressSnapshot?.latest_frame_event || null,
+    latest_preview_event: progressSnapshot?.latest_preview_event || null,
+    events_url: `/api/tasks/${encodeURIComponent(task.id)}/events`,
+  };
 }
 
 export function taskToSummaryDto(task) {

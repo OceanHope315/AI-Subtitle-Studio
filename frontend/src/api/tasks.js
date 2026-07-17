@@ -14,6 +14,19 @@ export class ApiError extends Error {
 const taskPath = (taskId, suffix = '') =>
   `${API_BASE_URL}/tasks/${encodeURIComponent(taskId)}${suffix}`
 
+export function getTaskEventsUrl(taskId, afterSeq = null) {
+  const url = taskPath(taskId, '/events')
+  const sequence = Number(afterSeq)
+  if (!Number.isSafeInteger(sequence) || sequence < 0) return url
+  return `${url}?${new URLSearchParams({ after_seq: String(sequence) })}`
+}
+
+export function getTaskPreviewUrl(taskId, previewId, runId = '') {
+  if (!previewId) return ''
+  const url = taskPath(taskId, `/previews/${encodeURIComponent(previewId)}`)
+  return runId ? `${url}?${new URLSearchParams({ run_id: runId })}` : url
+}
+
 async function readResponse(response) {
   const contentType = response.headers.get('content-type') || ''
   if (contentType.includes('application/json')) {
@@ -43,6 +56,101 @@ async function request(url, options = {}) {
   }
 
   return payload
+}
+
+function dispatchSseMessage(fields, onEvent) {
+  if (fields.data.length === 0) return
+  let parsed
+  try {
+    parsed = JSON.parse(fields.data.join('\n'))
+  } catch {
+    return
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return
+  onEvent?.({
+    ...parsed,
+    type: parsed.type || fields.event || 'message',
+    sse_id: fields.id || parsed.sse_id || '',
+  })
+}
+
+/**
+ * Consume one SSE response. Reconnection stays with the caller so it can use
+ * the latest accepted run_id + seq cursor and a bounded retry policy.
+ */
+export async function streamTaskEvents(taskId, {
+  afterSeq = 0,
+  lastEventId = '',
+  signal,
+  onOpen,
+  onEvent,
+} = {}) {
+  const headers = {
+    Accept: 'text/event-stream',
+    'Cache-Control': 'no-cache',
+  }
+  if (lastEventId) headers['Last-Event-ID'] = lastEventId
+
+  let response
+  try {
+    response = await fetch(getTaskEventsUrl(taskId, afterSeq), { headers, signal })
+  } catch (error) {
+    if (error.name === 'AbortError') throw error
+    throw new ApiError('实时分析连接失败。', 0, error)
+  }
+
+  if (!response.ok) {
+    const payload = await readResponse(response)
+    throw new ApiError(
+      payload?.message || payload?.error || `实时分析连接失败（${response.status}）`,
+      response.status,
+      payload,
+    )
+  }
+  if (!response.body?.getReader) throw new ApiError('当前浏览器不支持流式分析进度。')
+
+  onOpen?.(response)
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let fields = { data: [], event: '', id: '' }
+
+  const consumeLine = (rawLine) => {
+    const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine
+    if (!line) {
+      dispatchSseMessage(fields, onEvent)
+      fields = { data: [], event: '', id: '' }
+      return
+    }
+    if (line.startsWith(':')) return
+
+    const colon = line.indexOf(':')
+    const name = colon < 0 ? line : line.slice(0, colon)
+    let value = colon < 0 ? '' : line.slice(colon + 1)
+    if (value.startsWith(' ')) value = value.slice(1)
+    if (name === 'data') fields.data.push(value)
+    else if (name === 'event') fields.event = value
+    else if (name === 'id' && !value.includes('\0')) fields.id = value
+  }
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done })
+      let newline = buffer.indexOf('\n')
+      while (newline >= 0) {
+        consumeLine(buffer.slice(0, newline))
+        buffer = buffer.slice(newline + 1)
+        newline = buffer.indexOf('\n')
+      }
+      if (done) break
+    }
+    if (buffer) consumeLine(buffer)
+    dispatchSseMessage(fields, onEvent)
+  } finally {
+    reader.releaseLock?.()
+  }
 }
 
 export function uploadVideo(file, onProgress) {

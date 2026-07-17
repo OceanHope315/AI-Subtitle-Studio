@@ -13,6 +13,7 @@ import RoiSelectionPanel from '../components/RoiSelectionPanel'
 import { DraftRecoveryDialog, LeaveSafetyDialog } from '../components/SafetyDialogs'
 import TaskNotFound from '../components/TaskNotFound'
 import Toast from '../components/Toast'
+import useTaskAnalysisProgress from '../hooks/useTaskAnalysisProgress'
 import useTaskPolling from '../hooks/useTaskPolling'
 import EditorPage from './EditorPage'
 import { deleteSubtitleDraft, getSubtitleDraft, saveSubtitleDraft } from '../utils/draftStore'
@@ -46,6 +47,7 @@ export default function TaskWorkspace() {
   const editVersionRef = useRef(editVersion)
   const saveInFlightRef = useRef(null)
   const { task, loading: taskLoading, error: taskError, refresh } = useTaskPolling(taskId)
+  const analysis = useTaskAnalysisProgress(taskId, task, refresh)
   const blocker = useBlocker(dirty)
 
   const dismissNotice = useCallback(() => setNotice(null), [])
@@ -287,7 +289,7 @@ export default function TaskWorkspace() {
         <RoiSelectionPanel key={taskId} task={task} videoUrl={getVideoUrl(taskId)} submitting={recognitionStarting} error={recognitionError} onConfirm={handleStartRecognition} onNewTask={() => navigate('/tasks/new')} />
       )}
       {!unrecoverableTaskError && !editorReady && !awaitingRoi && (
-        <ProcessingPanel task={task} loading={taskLoading} pollingError={taskError} onRetry={refresh} onNewTask={() => navigate('/tasks/new')} />
+        <ProcessingPanel task={task} loading={taskLoading} pollingError={taskError} analysis={analysis} onRetry={refresh} onNewTask={() => navigate('/tasks/new')} />
       )}
       {editorReady && (
         <>

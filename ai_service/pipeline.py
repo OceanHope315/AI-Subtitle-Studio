@@ -20,6 +20,7 @@ from ai_service.alignment.temporal import (
 )
 from ai_service.config import Settings
 from ai_service.ocr import OCREngine, PaddleOCREngine, compose_line_candidates
+from ai_service.progress import ProgressPublisher
 from ai_service.schemas import NormalizedROI, SubtitleItem, VideoMetadata
 from ai_service.subtitle.srt import write_json_artifact, write_srt, write_subtitle_json
 from ai_service.video import SampledFrame, VideoReader
@@ -65,9 +66,17 @@ class SubtitlePipeline:
         enable_whisper: bool | None = None,
         roi: NormalizedROI | dict | tuple[float, float, float, float] | None = None,
         progress: ProgressCallback | None = None,
+        event_publisher: ProgressPublisher | None = None,
     ) -> PipelineResult:
         callback = progress or (lambda _value, _message: None)
         reader = VideoReader(video_path)
+        if event_publisher is not None:
+            event_publisher.stage_progress(
+                "probing",
+                "读取视频时间轴",
+                1,
+                message="正在读取视频元数据与 PTS 时间轴",
+            )
         metadata = reader.probe()
         callback(3, "视频读取成功，开始 PaddleOCR 抽帧识别")
 
@@ -79,11 +88,51 @@ class SubtitlePipeline:
             height=self.settings.roi_bottom_ratio - self.settings.roi_top_ratio,
         )
 
+        if event_publisher is not None:
+            event_publisher.stage_progress(
+                "coarse_ocr",
+                "PaddleOCR 抽帧识别",
+                3,
+                processed=0,
+                total=max(1, int(metadata.duration * self.settings.sample_fps) + 1),
+                message="视频读取成功，开始 PaddleOCR 抽帧识别",
+            )
+
         total_samples = max(1, int(metadata.duration * self.settings.sample_fps) + 1)
         observations: list[OCRObservation] = []
         frame_cache: dict[int, OCRFrameObservation] = {}
         warnings: list[str] = []
         consecutive_ocr_errors = 0
+        known_cue_count = 0
+        next_cue_count_checkpoint = 1
+
+        def refresh_cue_count(*, force: bool = False) -> int:
+            """Refresh the real aggregate count at geometric checkpoints.
+
+            ``build_ocr_events`` is not incremental and can itself be
+            quadratic for a long continuous track. Calling it at 1, 2, 4, …
+            observations keeps observability overhead within the same
+            asymptotic order as the required final aggregate. The aggregation
+            stage below still publishes the exact final count.
+            """
+
+            nonlocal known_cue_count, next_cue_count_checkpoint
+            observation_count = len(observations)
+            if force or observation_count >= next_cue_count_checkpoint:
+                known_cue_count = len(
+                    build_ocr_events(
+                        observations,
+                        video_duration=metadata.duration,
+                        sample_fps=self.settings.sample_fps,
+                        similarity_threshold=self.settings.text_similarity_threshold,
+                        max_missing_seconds=self.settings.max_missing_seconds,
+                        min_duration=self.settings.min_event_duration,
+                    )
+                )
+                while next_cue_count_checkpoint <= observation_count:
+                    next_cue_count_checkpoint *= 2
+            return known_cue_count
+
         for index, frame in enumerate(
             reader.sampled_frames(
                 self.settings.sample_fps,
@@ -91,17 +140,23 @@ class SubtitlePipeline:
             ),
             start=1,
         ):
+            raw_candidates = []
+            ocr_error: str | None = None
+            stop_after_frame = False
             try:
-                candidates = self._detect_frame(frame, apply_layout_filter=not explicit_roi)
+                raw_candidates = self._detect_frame(
+                    frame, apply_layout_filter=not explicit_roi
+                )
                 candidates = compose_line_candidates(
-                    candidates, roi_bounds=_frame_roi_bounds(frame)
+                    raw_candidates, roi_bounds=_frame_roi_bounds(frame)
                 )
                 consecutive_ocr_errors = 0
             except Exception as exc:
+                ocr_error = str(exc)
                 consecutive_ocr_errors += 1
                 if consecutive_ocr_errors >= 2:
                     warnings.append(str(exc))
-                    break
+                    stop_after_frame = True
                 candidates = []
             frame_observations: list[OCRObservation] = []
             for candidate in candidates:
@@ -120,10 +175,39 @@ class SubtitlePipeline:
                 timestamp=frame.timestamp,
                 candidates=frame_observations,
             )
-            callback(
-                min(70, 3 + int(index / total_samples * 67)),
-                f"PaddleOCR 已处理 {min(index, total_samples)}/{total_samples} 个采样帧",
+            overall_progress = min(70, 3 + int(index / total_samples * 67))
+            processed_samples = min(index, total_samples)
+            message = (
+                f"PaddleOCR 已处理 {processed_samples}/{total_samples} 个采样帧"
             )
+            callback(overall_progress, message)
+            if event_publisher is not None:
+                current_cue_count = refresh_cue_count()
+                event_publisher.stage_progress(
+                    "coarse_ocr",
+                    "PaddleOCR 抽帧识别",
+                    overall_progress,
+                    processed=processed_samples,
+                    total=total_samples,
+                    detected_cue_count=current_cue_count,
+                    message=message,
+                )
+                # This is intentionally after the real OCR call. The event
+                # exposes raw Paddle candidates; line composition is used only
+                # by the existing temporal aggregation path above.
+                event_publisher.frame_analyzed(
+                    stage="coarse_ocr",
+                    frame=frame,
+                    metadata=metadata,
+                    roi=selected_roi,
+                    candidates=raw_candidates,
+                    processed=processed_samples,
+                    total=total_samples,
+                    detected_cue_count=current_cue_count,
+                    ocr_error=ocr_error,
+                )
+            if stop_after_frame:
+                break
 
         coarse_observation_count = len(observations)
         provisional_events = build_ocr_events(
@@ -135,11 +219,25 @@ class SubtitlePipeline:
             min_duration=self.settings.min_event_duration,
         )
         coarse_event_count = len(provisional_events)
+        known_cue_count = coarse_event_count
+        while next_cue_count_checkpoint <= len(observations):
+            next_cue_count_checkpoint *= 2
         discovery_ocr_calls = 0
         discovery_enabled = bool(
             self.settings.discover_short_events
             and self.settings.discovery_ocr_budget > 0
         )
+        if event_publisher is not None:
+            event_publisher.stage_progress(
+                "short_event_discovery",
+                "短字幕变化发现",
+                70,
+                message=(
+                    "正在扫描采样间隙中的短字幕变化"
+                    if discovery_enabled
+                    else "短字幕变化发现已跳过"
+                ),
+            )
         if discovery_enabled:
             focus_events = provisional_events
             if explicit_roi:
@@ -171,12 +269,18 @@ class SubtitlePipeline:
                     continue
                 discovery_ocr_calls += 1
                 frame = reader.frame_at_index(frame_index, roi=selected_roi)
+                raw_candidates = []
+                ocr_error: str | None = None
                 try:
+                    raw_candidates = self._detect_frame(
+                        frame, apply_layout_filter=not explicit_roi
+                    )
                     candidates = compose_line_candidates(
-                        self._detect_frame(frame, apply_layout_filter=not explicit_roi),
+                        raw_candidates,
                         roi_bounds=_frame_roi_bounds(frame),
                     )
                 except Exception as exc:
+                    ocr_error = str(exc)
                     discovery_errors += 1
                     if discovery_errors == 1:
                         warnings.append(f"短字幕发现部分失败: {exc}")
@@ -196,9 +300,51 @@ class SubtitlePipeline:
                     timestamp=frame.timestamp,
                     candidates=discovered,
                 )
-            callback(
+                if event_publisher is not None:
+                    discovered_count = refresh_cue_count()
+                    discovery_total = max(1, len(probe_indices))
+                    discovery_message = (
+                        f"短字幕变化 OCR {discovery_ocr_calls}/{discovery_total}"
+                    )
+                    event_publisher.stage_progress(
+                        "short_event_discovery",
+                        "短字幕变化发现",
+                        71,
+                        processed=discovery_ocr_calls,
+                        total=discovery_total,
+                        detected_cue_count=discovered_count,
+                        message=discovery_message,
+                    )
+                    event_publisher.frame_analyzed(
+                        stage="short_event_discovery",
+                        frame=frame,
+                        metadata=metadata,
+                        roi=selected_roi,
+                        candidates=raw_candidates,
+                        processed=discovery_ocr_calls,
+                        total=discovery_total,
+                        detected_cue_count=discovered_count,
+                        ocr_error=ocr_error,
+                    )
+            discovery_message = (
+                f"短字幕变化扫描完成（新增 OCR {discovery_ocr_calls} 次）"
+            )
+            callback(71, discovery_message)
+            if event_publisher is not None:
+                event_publisher.stage_progress(
+                    "short_event_discovery",
+                    "短字幕变化发现",
+                    71,
+                    processed=discovery_ocr_calls,
+                    total=len(probe_indices),
+                    message=discovery_message,
+                )
+        elif event_publisher is not None:
+            event_publisher.stage_progress(
+                "short_event_discovery",
+                "短字幕变化发现",
                 71,
-                f"短字幕变化扫描完成（新增 OCR {discovery_ocr_calls} 次）",
+                message="短字幕变化发现已跳过",
             )
 
         ocr_events = build_ocr_events(
@@ -224,10 +370,44 @@ class SubtitlePipeline:
             )
         if not ocr_events:
             warnings.append("未检测到满足阈值的视觉字幕；为避免注入画外语音，Whisper 不会独立生成字幕")
-        callback(72, f"OCR 时序聚合完成：{len(ocr_events)} 个视觉字幕事件")
+        aggregation_message = f"OCR 时序聚合完成：{len(ocr_events)} 个视觉字幕事件"
+        callback(72, aggregation_message)
+        if event_publisher is not None:
+            event_publisher.stage_progress(
+                "event_aggregation",
+                "视觉字幕事件聚合",
+                72,
+                processed=len(ocr_events),
+                total=len(ocr_events),
+                detected_cue_count=len(ocr_events),
+                message=aggregation_message,
+            )
+            for event in ocr_events:
+                event_publisher.cue_upserted(
+                    event,
+                    stage="event_aggregation",
+                    detected_cue_count=len(ocr_events),
+                )
 
         refinement_ocr_calls = 0
         refinement_enabled = bool(ocr_events and self.settings.refine_boundaries)
+        refinement_total = (
+            len(ocr_events) * 2 * max(0, self.settings.boundary_ocr_budget)
+        )
+        known_cue_count = len(ocr_events)
+        if event_publisher is not None:
+            event_publisher.stage_progress(
+                "boundary_refinement",
+                "字幕边界逐帧精修",
+                72,
+                processed=0,
+                total=refinement_total,
+                message=(
+                    "正在逐帧确认字幕出现与消失边界"
+                    if refinement_enabled
+                    else "字幕边界精修已跳过"
+                ),
+            )
         if refinement_enabled:
             interval = 1 / self.settings.sample_fps
             refined: list[SubtitleItem] = []
@@ -254,14 +434,17 @@ class SubtitlePipeline:
                         return None
                     used += 1
                     refinement_ocr_calls += 1
+                    raw_candidates = []
+                    ocr_error: str | None = None
                     try:
-                        candidates = self._detect_frame(
+                        raw_candidates = self._detect_frame(
                             frame, apply_layout_filter=not explicit_roi
                         )
                         candidates = compose_line_candidates(
-                            candidates, roi_bounds=_frame_roi_bounds(frame)
+                            raw_candidates, roi_bounds=_frame_roi_bounds(frame)
                         )
                     except Exception as exc:
+                        ocr_error = str(exc)
                         refinement_errors += 1
                         if refinement_errors == 1:
                             warnings.append(f"逐帧边界精修部分失败: {exc}")
@@ -280,6 +463,36 @@ class SubtitlePipeline:
                         ],
                     )
                     frame_cache[frame.frame_index] = observed
+                    if event_publisher is not None:
+                        refinement_message = (
+                            f"边界证据 OCR {refinement_ocr_calls}/{refinement_total}"
+                        )
+                        refinement_progress = min(
+                            82,
+                            72 + int(
+                                refinement_ocr_calls / max(1, refinement_total) * 10
+                            ),
+                        )
+                        event_publisher.stage_progress(
+                            "boundary_refinement",
+                            "字幕边界逐帧精修",
+                            refinement_progress,
+                            processed=refinement_ocr_calls,
+                            total=refinement_total,
+                            message=refinement_message,
+                        )
+                        event_publisher.frame_analyzed(
+                            stage="boundary_refinement",
+                            frame=frame,
+                            metadata=metadata,
+                            roi=selected_roi,
+                            candidates=raw_candidates,
+                            processed=refinement_ocr_calls,
+                            total=refinement_total,
+                            detected_cue_count=len(ocr_events),
+                            evidence=True,
+                            ocr_error=ocr_error,
+                        )
                     return observed
 
                 return _selective_transition_observations(
@@ -306,42 +519,116 @@ class SubtitlePipeline:
                     min(metadata.duration, event.end_time),
                     "end",
                 )
-                refined.append(
-                    refine_event_boundary(
-                        event,
-                        start_frames=start_frames,
-                        end_frames=end_frames,
-                        source_fps=metadata.fps,
-                        video_duration=metadata.duration,
-                        min_duration=self.settings.min_event_duration,
-                        similarity_threshold=max(
-                            0.42, self.settings.text_similarity_threshold - 0.15
-                        ),
-                    )
+                refined_event = refine_event_boundary(
+                    event,
+                    start_frames=start_frames,
+                    end_frames=end_frames,
+                    source_fps=metadata.fps,
+                    video_duration=metadata.duration,
+                    min_duration=self.settings.min_event_duration,
+                    similarity_threshold=max(
+                        0.42, self.settings.text_similarity_threshold - 0.15
+                    ),
                 )
+                refined.append(refined_event)
+                if event_publisher is not None:
+                    event_publisher.cue_upserted(
+                        refined_event,
+                        stage="boundary_refinement",
+                        detected_cue_count=len(ocr_events),
+                    )
                 callback(
                     min(82, 72 + int(index / len(ocr_events) * 10)),
                     f"逐帧边界精修 {index}/{len(ocr_events)}",
                 )
             ocr_events = refined
-            callback(82, f"逐帧边界精修完成（新增 OCR {refinement_ocr_calls} 次）")
+            refinement_message = (
+                f"逐帧边界精修完成（新增 OCR {refinement_ocr_calls} 次）"
+            )
+            callback(82, refinement_message)
+            if event_publisher is not None:
+                event_publisher.stage_progress(
+                    "boundary_refinement",
+                    "字幕边界逐帧精修",
+                    82,
+                    processed=refinement_ocr_calls,
+                    total=refinement_total,
+                    detected_cue_count=len(ocr_events),
+                    message=refinement_message,
+                )
+        elif event_publisher is not None:
+            event_publisher.stage_progress(
+                "boundary_refinement",
+                "字幕边界逐帧精修",
+                82,
+                processed=0,
+                total=0,
+                detected_cue_count=len(ocr_events),
+                message="字幕边界精修已跳过",
+            )
 
         use_whisper = self.settings.enable_whisper if enable_whisper is None else enable_whisper
         whisper_segments: list[SubtitleItem] = []
         if use_whisper and ocr_events:
-            callback(84, "Whisper 正在辅助校验视觉字幕文字")
+            whisper_message = "Whisper 正在辅助校验视觉字幕文字"
+            callback(84, whisper_message)
+            if event_publisher is not None:
+                event_publisher.stage_progress(
+                    "whisper_correction",
+                    "Whisper 受限校字",
+                    84,
+                    message=whisper_message,
+                )
             try:
                 whisper_segments = self.whisper.transcribe(
                     str(video_path), language=self.settings.ocr_language
                 )
             except Exception as exc:
                 warnings.append(str(exc))
-            callback(94, f"Whisper 辅助完成：{len(whisper_segments)} 个语音片段")
+            whisper_message = (
+                f"Whisper 辅助完成：{len(whisper_segments)} 个语音片段"
+            )
+            callback(94, whisper_message)
+            if event_publisher is not None:
+                event_publisher.stage_progress(
+                    "whisper_correction",
+                    "Whisper 受限校字",
+                    94,
+                    processed=len(whisper_segments),
+                    total=len(whisper_segments),
+                    detected_cue_count=len(ocr_events),
+                    message=whisper_message,
+                )
+        elif event_publisher is not None:
+            event_publisher.stage_progress(
+                "whisper_correction",
+                "Whisper 受限校字",
+                94,
+                detected_cue_count=len(ocr_events),
+                message="Whisper 受限校字已跳过",
+            )
 
         ocr_events = reader.attach_timebase(ocr_events)
         subtitles = reader.attach_timebase(fuse_with_whisper(ocr_events, whisper_segments))
         if not subtitles:
             raise RuntimeError("框选区域内未生成视觉字幕，请检查字幕区域、语言和 OCR 模型")
+
+        if event_publisher is not None:
+            event_publisher.stage_progress(
+                "artifact_generation",
+                "生成字幕产物",
+                95,
+                processed=0,
+                total=4,
+                detected_cue_count=len(subtitles),
+                message="正在生成 JSON、SRT 与诊断产物",
+            )
+            for subtitle in subtitles:
+                event_publisher.cue_upserted(
+                    subtitle,
+                    stage="artifact_generation",
+                    detected_cue_count=len(subtitles),
+                )
 
         output = Path(output_dir)
         output.mkdir(parents=True, exist_ok=True)
@@ -366,7 +653,18 @@ class SubtitlePipeline:
             ),
             output / "diagnostics.json",
         )
-        callback(98, "subtitle.json 与 output.srt 已生成")
+        artifact_message = "subtitle.json 与 output.srt 已生成"
+        callback(98, artifact_message)
+        if event_publisher is not None:
+            event_publisher.stage_progress(
+                "artifact_generation",
+                "生成字幕产物",
+                98,
+                processed=4,
+                total=4,
+                detected_cue_count=len(subtitles),
+                message=artifact_message,
+            )
         return PipelineResult(
             metadata=metadata,
             subtitles=subtitles,
@@ -642,7 +940,10 @@ def _short_event_probe_indices(
             selected.append(frame_index)
         if len(selected) >= budget:
             break
-    return selected
+    # OCR these selected probes in presentation order. Ranking still decides
+    # which frames fit the fixed budget; sorting only makes the published
+    # frame/PTS/media-time sequence monotonic within this discovery pass.
+    return sorted(selected)
 
 
 def _short_event_intervals(

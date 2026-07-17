@@ -44,6 +44,32 @@ test("AI job progress, metadata and subtitles are synchronized and persisted", a
         task_id: id,
         status: "completed",
         progress: 100,
+        run_id: "0123456789abcdef0123456789abcdef",
+        latest_seq: 3,
+        latest_frame_event: {
+          seq: 2,
+          task_id: id,
+          run_id: "0123456789abcdef0123456789abcdef",
+          type: "frame.analyzed",
+          occurred_at: "2026-07-17T00:00:02Z",
+          payload: { frame_index: 12, preview_id: "a".repeat(32) },
+        },
+        latest_preview_event: {
+          seq: 2,
+          task_id: id,
+          run_id: "0123456789abcdef0123456789abcdef",
+          type: "frame.analyzed",
+          occurred_at: "2026-07-17T00:00:02Z",
+          payload: { frame_index: 12, preview_id: "a".repeat(32) },
+        },
+        latest_event: {
+          seq: 3,
+          task_id: id,
+          run_id: "0123456789abcdef0123456789abcdef",
+          type: "job.completed",
+          occurred_at: "2026-07-17T00:00:03Z",
+          payload: { subtitle_count: 1 },
+        },
         metadata: { fps: 30, width: 1920, height: 1080, duration: 10 },
         subtitles: [
           {
@@ -75,6 +101,10 @@ test("AI job progress, metadata and subtitles are synchronized and persisted", a
   assert.equal(result.metadata.fps, 30);
   assert.equal(result.metadata.size, 7);
   assert.equal(result.subtitles[0].text, "Hello world");
+  assert.equal(result.progressSnapshot.latest_seq, 3);
+  assert.equal(result.progressSnapshot.latest_event.type, "job.completed");
+  assert.equal(result.progressSnapshot.latest_frame_event.type, "frame.analyzed");
+  assert.equal(result.progressSnapshot.latest_preview_event.type, "frame.analyzed");
 
   const srt = await fs.readFile(artifactService.srtPath(id), "utf8");
   assert.match(srt, /00:00:00,250 --> 00:00:01,750/);
@@ -84,6 +114,9 @@ test("AI job progress, metadata and subtitles are synchronized and persisted", a
   const persisted = await reopened.findById(id);
   assert.equal(persisted.status, "completed");
   assert.equal(persisted.subtitles.length, 1);
+  assert.equal(persisted.progressSnapshot.run_id, "0123456789abcdef0123456789abcdef");
+  assert.equal(persisted.progressSnapshot.latest_frame_event.payload.frame_index, 12);
+  assert.equal(persisted.progressSnapshot.latest_preview_event.payload.preview_id, "a".repeat(32));
   await reopened.close();
 });
 

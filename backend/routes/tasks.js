@@ -6,6 +6,7 @@ import express from "express";
 import multer from "multer";
 import { AppError, asyncHandler } from "../utils/errors.js";
 import { taskToDto, taskToSummaryDto } from "../utils/taskDto.js";
+import { RUN_ID_PATTERN } from "../services/progressEventHub.js";
 import {
   isMp4File,
   parseByteRange,
@@ -17,6 +18,7 @@ import { normalizeSubtitles } from "../services/subtitleService.js";
 const TASK_ID_PATTERN = /^[a-f\d]{8}-[a-f\d]{4}-[1-5][a-f\d]{3}-[89ab][a-f\d]{3}-[a-f\d]{12}$/i;
 const ACCEPTED_MP4_MIME_TYPES = new Set(["video/mp4", "application/mp4", "application/octet-stream"]);
 const TASK_STATUSES = new Set(["awaiting_roi", "queued", "processing", "completed", "failed"]);
+const PREVIEW_ID_PATTERN = RUN_ID_PATTERN;
 export const MIN_ROI_DIMENSION = 0.01;
 
 function validateTaskId(value) {
@@ -31,6 +33,66 @@ async function findTaskOrThrow(store, taskId) {
   const task = await store.findById(taskId);
   if (!task) throw new AppError(404, "Task not found", "TASK_NOT_FOUND");
   return task;
+}
+
+function validateOpaqueId(value, pattern, label, code) {
+  const normalized = typeof value === "string" ? value : "";
+  if (!pattern.test(normalized)) {
+    throw new AppError(400, `Invalid ${label}`, code);
+  }
+  return normalized;
+}
+
+function parseSequence(value, label = "after_seq") {
+  const normalized = typeof value === "string" ? value.trim() : String(value ?? "");
+  if (!/^\d+$/.test(normalized)) {
+    throw new AppError(400, `${label} must be a non-negative safe integer`, "INVALID_EVENT_CURSOR");
+  }
+  const sequence = Number(normalized);
+  if (!Number.isSafeInteger(sequence)) {
+    throw new AppError(400, `${label} must be a non-negative safe integer`, "INVALID_EVENT_CURSOR");
+  }
+  return sequence;
+}
+
+export function parseEventCursor(req) {
+  const requestedRunId = req.query.run_id === undefined
+    ? null
+    : validateOpaqueId(req.query.run_id, RUN_ID_PATTERN, "run id", "INVALID_RUN_ID");
+  const lastEventId = String(req.get("Last-Event-ID") || "").trim();
+  if (lastEventId) {
+    const separator = lastEventId.lastIndexOf(":");
+    if (separator !== -1) {
+      const runId = validateOpaqueId(
+        lastEventId.slice(0, separator),
+        RUN_ID_PATTERN,
+        "Last-Event-ID run id",
+        "INVALID_EVENT_CURSOR",
+      );
+      const afterSeq = parseSequence(lastEventId.slice(separator + 1), "Last-Event-ID sequence");
+      if (requestedRunId && requestedRunId !== runId) {
+        throw new AppError(400, "run_id conflicts with Last-Event-ID", "INVALID_EVENT_CURSOR");
+      }
+      return { afterSeq, runId };
+    }
+    return { afterSeq: parseSequence(lastEventId, "Last-Event-ID"), runId: requestedRunId };
+  }
+  const afterSeq = req.query.after_seq === undefined ? 0 : parseSequence(req.query.after_seq);
+  return { afterSeq, runId: requestedRunId };
+}
+
+function upstreamHeader(headers, name) {
+  if (!headers) return undefined;
+  return headers.get?.(name) ?? headers[name] ?? headers[name.toLowerCase()];
+}
+
+function previewProxyError(error) {
+  const status = Number(error?.response?.status);
+  if (status === 404) return new AppError(404, "Preview is not available", "PREVIEW_NOT_FOUND");
+  if (status === 400 || status === 422) {
+    return new AppError(400, "Invalid preview reference", "INVALID_PREVIEW_REFERENCE");
+  }
+  return new AppError(502, "AI preview service is unavailable", "AI_PREVIEW_UNAVAILABLE");
 }
 
 export function validateRoi(value) {
@@ -104,7 +166,14 @@ async function removeUploadedFile(file) {
   await fsPromises.unlink(file.path).catch(() => {});
 }
 
-export function createTasksRouter({ store, processor, artifactService, config }) {
+export function createTasksRouter({
+  store,
+  processor,
+  artifactService,
+  config,
+  aiClient = null,
+  progressEventHub = null,
+}) {
   const router = express.Router();
   const upload = createUploader(config);
 
@@ -140,6 +209,7 @@ export function createTasksRouter({ store, processor, artifactService, config })
           error: null,
           artifacts: {},
           aiJobId: null,
+          progressSnapshot: null,
         });
 
         res.location(`/api/tasks/${id}`).status(201).json(taskToDto(task));
@@ -147,6 +217,145 @@ export function createTasksRouter({ store, processor, artifactService, config })
         await removeUploadedFile(req.file);
         throw error;
       }
+    }),
+  );
+
+  router.get(
+    "/:id/events",
+    asyncHandler(async (req, res) => {
+      const task = await findTaskOrThrow(store, req.params.id);
+      if (!progressEventHub) {
+        throw new AppError(503, "Live progress is not available", "PROGRESS_UNAVAILABLE");
+      }
+      const { afterSeq, runId } = parseEventCursor(req);
+      if (["queued", "processing"].includes(task.status)) processor.enqueue(task.id);
+
+      res.status(200).set({
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+        "X-Accel-Buffering": "no",
+      });
+      res.flushHeaders();
+
+      let closed = false;
+      let unsubscribe = () => {};
+      let heartbeat = null;
+      const cleanup = () => {
+        if (closed) return;
+        closed = true;
+        clearInterval(heartbeat);
+        unsubscribe();
+      };
+      const endStream = () => {
+        cleanup();
+        if (!res.writableEnded && !res.destroyed) res.end();
+      };
+      const writeSse = (chunk) => {
+        if (closed || res.writableEnded || res.destroyed) return false;
+        try {
+          const writable = res.write(chunk);
+          if (!writable) endStream();
+          return writable;
+        } catch {
+          endStream();
+          return false;
+        }
+      };
+      heartbeat = setInterval(() => {
+        writeSse(`: heartbeat ${new Date().toISOString()}\n\n`);
+      }, Math.max(10, Number(config.sseHeartbeatMs) || 15000));
+      heartbeat.unref?.();
+
+      req.once("close", cleanup);
+      res.once("close", cleanup);
+      if (!writeSse(
+        `retry: ${Math.max(100, Number(config.sseRetryMs) || 2000)}\n`
+        + ": connected\n\n",
+      )) return;
+
+      unsubscribe = progressEventHub.subscribe(task.id, {
+        afterSeq,
+        runId,
+        onEvent(event) {
+          writeSse(
+            `id: ${event.run_id}:${event.seq}\n`
+            + `event: ${event.type}\n`
+            + `data: ${JSON.stringify(event)}\n\n`,
+          );
+        },
+        onPollError() {
+          // Ending the response makes the browser reconnect with Last-Event-ID.
+          // It deliberately does not cancel the underlying analysis task.
+          endStream();
+        },
+        onClose() {
+          endStream();
+        },
+      });
+      if (closed) unsubscribe();
+    }),
+  );
+
+  router.get(
+    "/:id/previews/:previewId",
+    asyncHandler(async (req, res) => {
+      const task = await findTaskOrThrow(store, req.params.id);
+      if (!aiClient || typeof aiClient.getPreview !== "function") {
+        throw new AppError(503, "Preview images are not available", "PREVIEW_UNAVAILABLE");
+      }
+      const previewId = validateOpaqueId(
+        req.params.previewId,
+        PREVIEW_ID_PATTERN,
+        "preview id",
+        "INVALID_PREVIEW_ID",
+      );
+      const runId = validateOpaqueId(req.query.run_id, RUN_ID_PATTERN, "run id", "INVALID_RUN_ID");
+      const controller = new AbortController();
+      let source = null;
+      let finished = false;
+      const handleClose = () => {
+        if (finished) return;
+        controller.abort();
+        source?.destroy?.();
+      };
+      const handleFinish = () => {
+        finished = true;
+        res.off("close", handleClose);
+      };
+      res.once("close", handleClose);
+      res.once("finish", handleFinish);
+
+      let preview;
+      try {
+        preview = await aiClient.getPreview(task.id, previewId, runId, { signal: controller.signal });
+      } catch (error) {
+        res.off("close", handleClose);
+        res.off("finish", handleFinish);
+        if (controller.signal.aborted || res.destroyed) return;
+        throw previewProxyError(error);
+      }
+      if (controller.signal.aborted || res.destroyed) return;
+
+      const contentType = String(upstreamHeader(preview.headers, "content-type") || "")
+        .split(";", 1)[0]
+        .trim()
+        .toLowerCase();
+      if (contentType !== "image/jpeg" || !preview.data || typeof preview.data.pipe !== "function") {
+        preview.data?.destroy?.();
+        throw new AppError(502, "AI service returned an invalid preview image", "INVALID_PREVIEW_RESPONSE");
+      }
+      source = preview.data;
+      const contentLength = String(upstreamHeader(preview.headers, "content-length") || "");
+      res.status(200).set({
+        "Content-Type": "image/jpeg",
+        "Cache-Control": "private, max-age=300, immutable",
+        "Accept-Ranges": "none",
+        "X-Content-Type-Options": "nosniff",
+      });
+      if (/^\d+$/.test(contentLength)) res.set("Content-Length", contentLength);
+      source.once("error", () => res.destroy());
+      source.pipe(res);
     }),
   );
 

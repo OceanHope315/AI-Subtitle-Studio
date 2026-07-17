@@ -177,6 +177,7 @@ export class FileTaskStore {
         progress: 0,
         message: "Waiting for AI processing",
         error: null,
+        progressSnapshot: null,
         updatedAt: new Date().toISOString(),
       });
       this.tasks.set(taskId, next);
@@ -322,6 +323,7 @@ export class MongooseTaskStore {
           progress: 0,
           message: "Waiting for AI processing",
           error: null,
+          progressSnapshot: null,
           updatedAt: new Date(),
         },
       },

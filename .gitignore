@@ -8,6 +8,7 @@ frontend/dist/
 .venv/
 ai_service/.venv/
 .pytest_cache/
+.tmp-ai-service-tests/
 
 # Local configuration
 **/.env
@@ -21,6 +22,8 @@ data/videos/*
 !data/videos/.gitkeep
 data/jobs/*
 !data/jobs/.gitkeep
+data/progress/*
+!data/progress/.gitkeep
 data/e2e-logs/
 data/subtitles/*/
 !data/subtitles/test-video/

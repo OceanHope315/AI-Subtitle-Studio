@@ -29,6 +29,21 @@ test("AI client submits multipart video and polls the returned task", async (con
   app.get("/jobs/:id", (req, res) => {
     res.json({ task_id: req.params.id, status: "completed", progress: 100, subtitles: [] });
   });
+  app.get("/jobs/:id/events", (req, res) => {
+    assert.equal(req.params.id, "00000000-0000-4000-8000-000000000002");
+    assert.equal(req.query.after_seq, "12");
+    res.json({
+      task_id: req.params.id,
+      run_id: "0123456789abcdef0123456789abcdef",
+      latest_seq: 12,
+      events: [],
+    });
+  });
+  app.get("/jobs/:id/previews/:previewId", (req, res) => {
+    assert.equal(req.params.previewId, "11111111111111111111111111111111");
+    assert.equal(req.query.run_id, "0123456789abcdef0123456789abcdef");
+    res.type("image/jpeg").send(Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+  });
 
   const server = http.createServer(app);
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -50,4 +65,15 @@ test("AI client submits multipart video and polls the returned task", async (con
   assert.equal(submitted.status, "queued");
   const completed = await client.getJob(task.id);
   assert.equal(completed.status, "completed");
+  const events = await client.getEvents(task.id, 12);
+  assert.equal(events.run_id, "0123456789abcdef0123456789abcdef");
+  assert.deepEqual(events.events, []);
+  const preview = await client.getPreview(
+    task.id,
+    "11111111111111111111111111111111",
+    "0123456789abcdef0123456789abcdef",
+  );
+  const chunks = [];
+  for await (const chunk of preview.data) chunks.push(chunk);
+  assert.deepEqual(Buffer.concat(chunks), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
 });

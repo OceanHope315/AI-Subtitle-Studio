@@ -66,6 +66,13 @@ export function loadConfig(env = process.env) {
     aiPollIntervalMs: positiveInteger(env.AI_POLL_INTERVAL_MS, 2000, "AI_POLL_INTERVAL_MS"),
     aiPollMaxAttempts: positiveInteger(env.AI_POLL_MAX_ATTEMPTS, 900, "AI_POLL_MAX_ATTEMPTS"),
     aiPollMaxErrors: positiveInteger(env.AI_POLL_MAX_ERRORS, 5, "AI_POLL_MAX_ERRORS"),
+    aiEventPollIntervalMs: positiveInteger(
+      env.AI_EVENT_POLL_INTERVAL_MS,
+      500,
+      "AI_EVENT_POLL_INTERVAL_MS",
+    ),
+    sseHeartbeatMs: positiveInteger(env.SSE_HEARTBEAT_MS, 15000, "SSE_HEARTBEAT_MS"),
+    sseRetryMs: positiveInteger(env.SSE_RETRY_MS, 2000, "SSE_RETRY_MS"),
   };
 }
 

@@ -1,6 +1,6 @@
 # AI Subtitle Studio AI Service
 
-FastAPI 服务负责 OpenCV 视频读取、PaddleOCR 硬字幕检测、faster-whisper 辅助、时序
+FastAPI 服务负责 PyAV PTS 视频读取、PaddleOCR 硬字幕检测、faster-whisper 辅助、时序
 融合以及 JSON/SRT 产物生成。
 
 ## 启动
@@ -20,6 +20,11 @@ python main.py
   `sample_fps`、`enable_whisper`，以及成组提供的归一化字幕框 `roi_x`、
   `roi_y`、`roi_width`、`roi_height`。坐标相对于原视频画面，范围为 0 到 1。
 - `GET /jobs/:task_id`：任务状态、进度、元数据、字幕和错误。
+- `GET /jobs/:task_id/events?after_seq=N`：读取当前 run 中 `seq > N` 的结构化
+  事件，响应同时给出 `run_id`、`latest_seq` 和 `has_more`，用于 Express SSE
+  断线续传。
+- `GET /jobs/:task_id/previews/:preview_id?run_id=...`：读取受控目录内的 JPEG
+  原帧或 ROI 预览；task、run 和不可预测的 32 位十六进制 preview ID 都会校验。
 - `GET /jobs/:task_id/subtitles`：字幕 JSON。
 - `GET /jobs/:task_id/artifacts/ocr_events.json`
 - `GET /jobs/:task_id/artifacts/subtitle.json`
@@ -29,6 +34,36 @@ python main.py
 
 任务状态为 `queued`、`processing`、`completed` 或 `failed`。AI worker 默认为 1，避免
 CPU 环境并行加载多份 Paddle/Whisper 模型。
+
+## 可视化进度协议
+
+每次创建任务即分配新的 32 位十六进制 `run_id`。事件身份为 `run_id + seq`，其中
+`seq` 在同一 run 内从 1 严格递增。公共字段为 `seq`、`task_id`、`run_id`、`type`、
+`occurred_at`、`payload`；顶层 `progress` 和 `message` 为旧客户端保留。当前事件类型：
+
+- `stage.progress`：`probing`、`coarse_ocr`、`short_event_discovery`、
+  `event_aggregation`、`boundary_refinement`、`whisper_correction`、
+  `artifact_generation`。
+- `frame.analyzed`：真实 OCR 返回后的帧号、容器 PTS、精确 time base、媒体时间、
+  原视频归一化 ROI、Paddle 原始候选和当前真实聚合计数。候选 `position` 均为原视频
+  全局坐标并显式标记 `coordinate_space: video`。
+- `cue.upserted`、`job.completed`、`job.failed`；协议同时预留
+  `translation.upserted`，本阶段不执行翻译。
+
+完整历史写入 `data/progress/<task>/<run>/events.jsonl`，任务 JSON 只保存最新事件、最新
+分析帧和最新有图帧。读取优先使用固定长度内存缓存，缓存不覆盖游标时回读 JSONL；
+终态回放后再次释放热缓存；损坏的末行会被忽略，
+事件或预览写入失败不会中断 OCR、字幕与 SRT 产物生成。
+
+重启恢复在应用 startup/lifespan 执行，导入模块不会改写现有 job。普通中断运行补写
+`job.failed`；已经持久化完整成功结果的提交窗口则恢复为 `job.completed`。恢复会先检查
+JSONL 尾部以避免重复终态，并清扫所有终态运行遗留的普通预览。事件或清理暂不可用时，
+成功结果仍立即显示 completed，内部 marker 保留到后续启动继续重试这些副作用。
+
+普通预览约每秒最多一组，包括带 ROI/OCR 框的未裁剪原帧和 ROI 放大图，默认长边
+800 px、JPEG 质量 80。普通预览按最近 8 组环形淘汰，任务结束清理；边界精修证据写入
+独立 `evidence` 层，不受普通环形或完成清理影响。所有 JPEG 先写随机临时文件再原子
+rename；bundle manifest 失败时成对回滚 JPEG，图片不会进入事件 JSON 或任务数据库。
 
 ## CLI
 
@@ -80,7 +115,7 @@ YOLO 不是严格时间轴的必要依赖：手动 ROI 先限定字幕带，Padd
 python -m pytest tests -q
 ```
 
-当前自动化结果为 67/67 通过。
+当前自动化结果为 80/80 通过。
 
 PaddleOCR 3.x 在部分 Windows CPU 上默认 oneDNN/PIR 路径会失败；适配器在导入 Paddle
 之前设置兼容标志，并显式使用 mobile detection/recognition 模型与 `enable_mkldnn=False`。

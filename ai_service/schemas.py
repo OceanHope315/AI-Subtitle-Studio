@@ -7,6 +7,14 @@ from pydantic import BaseModel, Field, model_validator
 
 
 JobStatus = Literal["queued", "processing", "completed", "failed"]
+ProgressEventType = Literal[
+    "stage.progress",
+    "frame.analyzed",
+    "cue.upserted",
+    "translation.upserted",
+    "job.completed",
+    "job.failed",
+]
 
 
 class NormalizedROI(BaseModel):
@@ -70,8 +78,29 @@ class VideoMetadata(BaseModel):
     variable_frame_rate: bool = False
 
 
+class ProgressEvent(BaseModel):
+    """One append-only progress event.
+
+    ``progress`` and ``message`` intentionally remain top-level compatibility
+    fields for consumers that have not switched to the structured payload yet.
+    Event identity is the pair ``(run_id, seq)``.
+    """
+
+    seq: int = Field(ge=1)
+    task_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,80}$")
+    run_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+    type: ProgressEventType
+    occurred_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    payload: dict[str, Any] = Field(default_factory=dict)
+    progress: int = Field(default=0, ge=0, le=100)
+    message: str = ""
+
+    def public_dict(self) -> dict[str, Any]:
+        return self.model_dump(mode="json")
+
+
 class JobRecord(BaseModel):
-    task_id: str
+    task_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,80}$")
     status: JobStatus = "queued"
     progress: int = Field(default=0, ge=0, le=100)
     message: str = "等待处理"
@@ -83,8 +112,26 @@ class JobRecord(BaseModel):
     artifacts: dict[str, str] = Field(default_factory=dict)
     warnings: list[str] = Field(default_factory=list)
     error: str | None = None
+    # Only the current event summary belongs in the job snapshot. The complete
+    # append-only history lives in the independent progress JSONL store.
+    run_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{32}$")
+    latest_seq: int = Field(default=0, ge=0)
+    latest_event: ProgressEvent | None = None
+    latest_frame_event: ProgressEvent | None = None
+    latest_preview_event: ProgressEvent | None = None
+    # Internal write-ahead marker. It is persisted in the AI job file but
+    # excluded from public API responses so restart recovery can be retried
+    # idempotently across repeated crashes.
+    recovery_pending: bool = False
+    # A successful pipeline persists its complete result before publishing the
+    # terminal event. This marker lets startup finish that commit after a crash
+    # without incorrectly changing a completed run into a failed one.
+    completion_pending: bool = False
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     def public_dict(self) -> dict[str, Any]:
-        return self.model_dump(mode="json")
+        return self.model_dump(
+            mode="json",
+            exclude={"recovery_pending", "completion_pending"},
+        )

@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import { createTasksRouter } from "./routes/tasks.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import { ProgressEventHub } from "./services/progressEventHub.js";
 import { AppError } from "./utils/errors.js";
 
 function corsOptions(originSetting) {
@@ -16,8 +17,19 @@ function corsOptions(originSetting) {
   };
 }
 
-export function createApp({ store, processor, artifactService, config }) {
+export function createApp({
+  store,
+  processor,
+  artifactService,
+  config,
+  aiClient = processor?.aiClient || null,
+  progressEventHub = null,
+}) {
   const app = express();
+  const eventHub = progressEventHub || (aiClient
+    ? new ProgressEventHub({ aiClient, pollIntervalMs: config.aiEventPollIntervalMs })
+    : null);
+  app.locals.progressEventHub = eventHub;
   app.disable("x-powered-by");
   app.set("trust proxy", false);
   app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
@@ -27,7 +39,14 @@ export function createApp({ store, processor, artifactService, config }) {
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", persistence: store.mode });
   });
-  app.use("/api/tasks", createTasksRouter({ store, processor, artifactService, config }));
+  app.use("/api/tasks", createTasksRouter({
+    store,
+    processor,
+    artifactService,
+    config,
+    aiClient,
+    progressEventHub: eventHub,
+  }));
 
   app.use(notFoundHandler);
   app.use(errorHandler);
