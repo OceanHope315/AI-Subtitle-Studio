@@ -1,5 +1,5 @@
 # AI Subtitle Studio
-<img width="1672" height="941" alt="image" src="https://github.com/user-attachments/assets/e81423f3-a285-4c56-baa5-6f88d062601e" />
+![alt text](image-1.png)
 
 AI Subtitle Studio 是一个完整可运行的 AI 视频字幕辅助制作平台。它以 PaddleOCR
 检测画面硬字幕，用 faster-whisper 在视觉事件内受限校字，通过网页完成 ROI 框选、
