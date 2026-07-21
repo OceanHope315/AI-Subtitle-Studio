@@ -40,6 +40,7 @@ export default function RoiSelectionPanel({
   videoUrl,
   submitting = false,
   error = '',
+  notice = '',
   onConfirm,
   onNewTask,
 }) {
@@ -176,6 +177,8 @@ export default function RoiSelectionPanel({
             更换视频
           </button>
         </header>
+
+        {notice && <div className="auto-roi-fallback" role="status">{notice}</div>}
 
         <div className="roi-content">
           <div className="roi-preview-card">

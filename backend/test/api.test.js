@@ -145,6 +145,182 @@ describe("tasks API", () => {
     assert.deepEqual(persisted.roi, roi);
   });
 
+  test("estimates ROI without starting the task, then reuses the original start flow", async () => {
+    const roi = { x: 0.12, y: 0.7, width: 0.76, height: 0.16 };
+    const estimateCalls = [];
+    const aiClient = {
+      async estimateRoi(task) {
+        estimateCalls.push(task);
+        return { success: true, roi };
+      },
+    };
+    const autoApp = createApp({
+      store,
+      processor: { enqueue: processorEnqueue },
+      artifactService,
+      config,
+      aiClient,
+      progressEventHub: {},
+    });
+    function processorEnqueue(taskId) {
+      enqueued.push(taskId);
+      return true;
+    }
+    const created = await request(autoApp)
+      .post("/api/tasks")
+      .attach("video", mp4Fixture(), { filename: "auto-roi.mp4", contentType: "video/mp4" })
+      .expect(201);
+
+    const estimates = await Promise.all([
+      request(autoApp).post(`/api/tasks/${created.body.id}/estimate-roi`).expect(200),
+      request(autoApp).post(`/api/tasks/${created.body.id}/estimate-roi`).expect(200),
+    ]);
+    assert.deepEqual(estimates.map((response) => response.body), [
+      { success: true, roi },
+      { success: true, roi },
+    ]);
+    assert.equal(estimateCalls.length, 1);
+    assert.equal(path.resolve(estimateCalls[0].videoPath), path.resolve((await store.findById(created.body.id)).videoPath));
+    assert.equal((await store.findById(created.body.id)).status, "awaiting_roi");
+    assert.equal((await store.findById(created.body.id)).roi, null);
+    assert.deepEqual(enqueued, []);
+
+    await request(autoApp)
+      .post(`/api/tasks/${created.body.id}/start`)
+      .send({ roi })
+      .expect(202);
+    assert.deepEqual(enqueued, [created.body.id]);
+
+    const conflict = await request(autoApp)
+      .post(`/api/tasks/${created.body.id}/estimate-roi`)
+      .expect(409);
+    assert.equal(conflict.body.error.code, "TASK_STATE_CONFLICT");
+  });
+
+  test("returns the no-subtitle result and preserves manual ROI fallback", async () => {
+    const aiClient = {
+      async estimateRoi() {
+        return { success: false, reason: "no subtitle detected" };
+      },
+    };
+    const manualProcessor = {
+      enqueue(taskId) {
+        enqueued.push(taskId);
+      },
+    };
+    const autoApp = createApp({
+      store,
+      processor: manualProcessor,
+      artifactService,
+      config,
+      aiClient,
+      progressEventHub: {},
+    });
+    const created = await request(autoApp)
+      .post("/api/tasks")
+      .attach("video", mp4Fixture(), { filename: "no-subtitles.mp4", contentType: "video/mp4" })
+      .expect(201);
+
+    const estimated = await request(autoApp)
+      .post(`/api/tasks/${created.body.id}/estimate-roi`)
+      .expect(200);
+    assert.deepEqual(estimated.body, {
+      success: false,
+      reason: "no subtitle detected",
+    });
+    assert.equal((await store.findById(created.body.id)).status, "awaiting_roi");
+
+    const manualRoi = { x: 0.08, y: 0.52, width: 0.84, height: 0.24 };
+    await request(autoApp)
+      .post(`/api/tasks/${created.body.id}/start`)
+      .send({ roi: manualRoi })
+      .expect(202);
+    assert.deepEqual((await store.findById(created.body.id)).roi, manualRoi);
+    assert.deepEqual(enqueued, [created.body.id]);
+  });
+
+  test("rejects an estimate that becomes stale while another tab starts the task", async () => {
+    let releaseEstimate;
+    let markEstimateStarted;
+    const estimateStarted = new Promise((resolve) => {
+      markEstimateStarted = resolve;
+    });
+    const aiClient = {
+      async estimateRoi() {
+        markEstimateStarted();
+        return new Promise((resolve) => {
+          releaseEstimate = resolve;
+        });
+      },
+    };
+    const autoApp = createApp({
+      store,
+      processor: { enqueue: (taskId) => enqueued.push(taskId) },
+      artifactService,
+      config,
+      aiClient,
+      progressEventHub: {},
+    });
+    const created = await request(autoApp)
+      .post("/api/tasks")
+      .attach("video", mp4Fixture(), { filename: "two-tabs.mp4", contentType: "video/mp4" })
+      .expect(201);
+    const pendingEstimate = request(autoApp)
+      .post(`/api/tasks/${created.body.id}/estimate-roi`)
+      .then((response) => response);
+    await estimateStarted;
+
+    const manualRoi = { x: 0.08, y: 0.52, width: 0.84, height: 0.24 };
+    await request(autoApp)
+      .post(`/api/tasks/${created.body.id}/start`)
+      .send({ roi: manualRoi })
+      .expect(202);
+    releaseEstimate({
+      success: true,
+      roi: { x: 0.12, y: 0.7, width: 0.76, height: 0.16 },
+    });
+
+    const stale = await pendingEstimate;
+    assert.equal(stale.status, 409);
+    assert.equal(stale.body.error.code, "TASK_STATE_CONFLICT");
+    assert.equal(stale.body.error.details.status, "queued");
+    assert.deepEqual((await store.findById(created.body.id)).roi, manualRoi);
+  });
+
+  test("rejects invalid or failed upstream estimates without mutating the task", async () => {
+    const responses = [
+      { success: true, roi: { x: 0.9, y: 0.8, width: 0.3, height: 0.3 } },
+      new Error("AI offline"),
+    ];
+    const aiClient = {
+      async estimateRoi() {
+        const response = responses.shift();
+        if (response instanceof Error) throw response;
+        return response;
+      },
+    };
+    const autoApp = createApp({
+      store,
+      processor: { enqueue: (taskId) => enqueued.push(taskId) },
+      artifactService,
+      config,
+      aiClient,
+      progressEventHub: {},
+    });
+    for (const filename of ["invalid-estimate.mp4", "failed-estimate.mp4"]) {
+      const created = await request(autoApp)
+        .post("/api/tasks")
+        .attach("video", mp4Fixture(), { filename, contentType: "video/mp4" })
+        .expect(201);
+      await request(autoApp)
+        .post(`/api/tasks/${created.body.id}/estimate-roi`)
+        .expect(502);
+      assert.equal((await store.findById(created.body.id)).status, "awaiting_roi");
+      assert.equal((await store.findById(created.body.id)).roi, null);
+    }
+    assert.deepEqual(enqueued, []);
+  });
+
   test("validates every ROI coordinate, minimum size, and video bounds before starting", async () => {
     const invalidRois = [
       undefined,

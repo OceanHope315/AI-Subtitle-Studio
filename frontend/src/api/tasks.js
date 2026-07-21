@@ -224,6 +224,13 @@ export async function startTaskRecognition(taskId, roi) {
   return payload?.task || payload?.data || payload
 }
 
+export function estimateTaskRoi(taskId, signal) {
+  return request(taskPath(taskId, '/estimate-roi'), {
+    method: 'POST',
+    signal,
+  })
+}
+
 export async function getSubtitles(taskId, signal) {
   const payload = await request(taskPath(taskId, '/subtitles'), { signal })
   return { subtitles: payload?.subtitles || [], revision: Number(payload?.revision) || 0 }

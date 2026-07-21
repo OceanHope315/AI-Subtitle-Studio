@@ -74,7 +74,7 @@ export default function UploadPanel({ uploading, uploadProgress, error, onUpload
               <div className="upload-orbit"><FilmIcon /></div>
               <div>
                 <h2>正在安全上传视频</h2>
-                <p>请保持页面开启，上传完成后请框选字幕区域</p>
+                <p>请保持页面开启，上传完成后将自动估计字幕区域</p>
               </div>
               <div className="upload-progress-row">
                 <div className="progress-track"><span style={{ width: `${uploadProgress}%` }} /></div>

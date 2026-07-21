@@ -8,6 +8,7 @@ import { deleteSubtitleDraft, getSubtitleDraft, saveSubtitleDraft } from '../uti
 
 vi.mock('../api/tasks', () => ({
   downloadSrt: vi.fn(),
+  estimateTaskRoi: vi.fn(),
   getSubtitles: vi.fn(),
   getVideoUrl: vi.fn(() => '/video.mp4'),
   saveSubtitles: vi.fn(),

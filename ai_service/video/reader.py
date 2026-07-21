@@ -118,6 +118,66 @@ class VideoReader:
                 crop, left, top = _crop_frame(image, normalized_roi)
                 yield self._sample(crop, timing, left, top, source_image=image)
 
+    def representative_frames(self, count: int = 16) -> Iterator[SampledFrame]:
+        """Seek to evenly spaced full frames without scanning the whole video."""
+
+        if count <= 0:
+            raise ValueError("representative frame count must be positive")
+        with av.open(self.path) as container:
+            if not container.streams.video:
+                raise RuntimeError("视频元数据无效或视频损坏")
+            stream = container.streams.video[0]
+            time_base = Fraction(stream.time_base)
+            start_pts = int(stream.start_time or 0)
+            average_rate = Fraction(stream.average_rate) if stream.average_rate else None
+            if stream.duration is not None:
+                duration = float(Fraction(int(stream.duration)) * time_base)
+            elif container.duration is not None:
+                duration = float(container.duration / av.time_base)
+            elif stream.frames and average_rate:
+                duration = float(Fraction(stream.frames, 1) / average_rate)
+            else:
+                # Metadata-poor containers keep the exact legacy fallback.
+                duration = self.probe().duration
+            if duration <= 0:
+                raise RuntimeError("视频元数据无效或视频损坏")
+
+            frame_interval = 1 / float(average_rate) if average_rate else 0
+            end_margin = frame_interval / 2
+            targets = [
+                min(max(0.0, duration - end_margin), index * duration / max(1, count - 1))
+                for index in range(count)
+            ]
+            seen_pts: set[int] = set()
+            for target in targets:
+                target_pts = start_pts + round(target / float(time_base))
+                container.seek(target_pts, stream=stream, backward=True, any_frame=False)
+                selected = None
+                for frame in container.decode(stream):
+                    if frame.pts is None:
+                        continue
+                    selected = frame
+                    timestamp = float(Fraction(int(frame.pts) - start_pts) * time_base)
+                    if timestamp + frame_interval / 2 >= target:
+                        break
+                if selected is None or int(selected.pts) in seen_pts:
+                    continue
+                seen_pts.add(int(selected.pts))
+                timestamp = float(Fraction(int(selected.pts) - start_pts) * time_base)
+                duration_pts = int(selected.duration or 0)
+                if duration_pts <= 0 and average_rate:
+                    duration_pts = max(1, round(1 / float(time_base * average_rate)))
+                image = selected.to_ndarray(format="bgr24")
+                yield SampledFrame(
+                    image=image,
+                    frame_index=max(0, round(timestamp * float(average_rate or 0))),
+                    timestamp=timestamp,
+                    pts=int(selected.pts),
+                    duration_pts=duration_pts or None,
+                    time_base=_fraction_text(time_base),
+                    source_image=image,
+                )
+
     def frames_between(
         self,
         start_time: float,

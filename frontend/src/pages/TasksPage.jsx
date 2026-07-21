@@ -4,7 +4,7 @@ import { archiveTask, listTasks } from '../api/tasks'
 import AppHeader from '../components/AppHeader'
 
 const STATUS_LABELS = {
-  awaiting_roi: '等待框选',
+  awaiting_roi: '等待确认区域',
   queued: '排队中',
   processing: '识别中',
   completed: '已完成',
@@ -12,7 +12,7 @@ const STATUS_LABELS = {
 }
 
 const ACTION_LABELS = {
-  awaiting_roi: '继续框选',
+  awaiting_roi: '确认字幕区域',
   queued: '查看进度',
   processing: '查看进度',
   completed: '继续编辑',
@@ -74,7 +74,7 @@ export default function TasksPage() {
       <AppHeader onHome={() => navigate('/tasks')} onNewTask={() => navigate('/tasks/new')} />
       <main className="tasks-page">
         <div className="tasks-hero">
-          <div><span>任务已持久化</span><h1>任务中心</h1><p>从历史任务继续框选、查看进度或校对字幕。</p></div>
+          <div><span>任务已持久化</span><h1>任务中心</h1><p>从历史任务继续确认字幕区域、查看进度或校对字幕。</p></div>
           <button className="button button-primary" type="button" onClick={() => navigate('/tasks/new')}>新建任务</button>
         </div>
 

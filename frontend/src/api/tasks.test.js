@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   API_BASE_URL,
+  estimateTaskRoi,
   getTaskPreviewUrl,
   listTasks,
   saveSubtitles,
@@ -70,6 +71,32 @@ describe('task summaries and revisions', () => {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'If-Match': '"7"' },
     }))
+  })
+})
+
+describe('estimateTaskRoi', () => {
+  it('posts to the estimation endpoint and preserves success and no-subtitle results', async () => {
+    const roi = { x: 0.12, y: 0.7, width: 0.76, height: 0.16 }
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({ success: true, roi }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ))
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({ success: false, reason: 'no subtitle detected' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(estimateTaskRoi('task/one')).resolves.toEqual({ success: true, roi })
+    await expect(estimateTaskRoi('task/two')).resolves.toEqual({
+      success: false,
+      reason: 'no subtitle detected',
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(1, `${API_BASE_URL}/tasks/task%2Fone/estimate-roi`, {
+      method: 'POST',
+      signal: undefined,
+    })
   })
 })
 

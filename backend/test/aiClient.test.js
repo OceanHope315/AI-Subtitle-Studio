@@ -16,6 +16,14 @@ test("AI client submits multipart video and polls the returned task", async (con
 
   const app = express();
   const upload = multer({ storage: multer.memoryStorage() });
+  app.post("/estimate-roi", upload.single("video"), (req, res) => {
+    assert.equal(req.file.originalname, "source.mp4");
+    assert.deepEqual(req.file.buffer, video);
+    res.json({
+      success: true,
+      roi: { x: 0.12, y: 0.7, width: 0.76, height: 0.16 },
+    });
+  });
   app.post("/jobs", upload.single("video"), (req, res) => {
     assert.equal(req.body.task_id, "00000000-0000-4000-8000-000000000002");
     assert.equal(req.body.roi_x, "0.1");
@@ -61,6 +69,11 @@ test("AI client submits multipart video and polls the returned task", async (con
     roi: { x: 0.1, y: 0.62, width: 0.8, height: 0.22 },
   };
 
+  const estimated = await client.estimateRoi(task);
+  assert.deepEqual(estimated, {
+    success: true,
+    roi: { x: 0.12, y: 0.7, width: 0.76, height: 0.16 },
+  });
   const submitted = await client.createJob(task);
   assert.equal(submitted.status, "queued");
   const completed = await client.getJob(task.id);

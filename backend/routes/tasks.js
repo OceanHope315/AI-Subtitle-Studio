@@ -14,11 +14,13 @@ import {
   safeOriginalFilename,
 } from "../utils/video.js";
 import { normalizeSubtitles } from "../services/subtitleService.js";
+import { describeAiError } from "../services/aiClient.js";
 
 const TASK_ID_PATTERN = /^[a-f\d]{8}-[a-f\d]{4}-[1-5][a-f\d]{3}-[89ab][a-f\d]{3}-[a-f\d]{12}$/i;
 const ACCEPTED_MP4_MIME_TYPES = new Set(["video/mp4", "application/mp4", "application/octet-stream"]);
 const TASK_STATUSES = new Set(["awaiting_roi", "queued", "processing", "completed", "failed"]);
 const PREVIEW_ID_PATTERN = RUN_ID_PATTERN;
+const ROI_ESTIMATION_CACHE_MS = 30_000;
 export const MIN_ROI_DIMENSION = 0.01;
 
 function validateTaskId(value) {
@@ -176,6 +178,13 @@ export function createTasksRouter({
 }) {
   const router = express.Router();
   const upload = createUploader(config);
+  const roiEstimationCache = new Map();
+  const clearRoiEstimation = (taskId, expected = null) => {
+    const entry = roiEstimationCache.get(taskId);
+    if (!entry || (expected && entry !== expected)) return;
+    clearTimeout(entry.timer);
+    roiEstimationCache.delete(taskId);
+  };
 
   router.post(
     "/",
@@ -360,6 +369,99 @@ export function createTasksRouter({
   );
 
   router.post(
+    "/:id/estimate-roi",
+    asyncHandler(async (req, res) => {
+      const task = await findTaskOrThrow(store, req.params.id);
+      if (task.status !== "awaiting_roi") {
+        throw new AppError(
+          409,
+          `Task ROI cannot be estimated while it is ${task.status}`,
+          "TASK_STATE_CONFLICT",
+          { status: task.status },
+        );
+      }
+      if (!aiClient || typeof aiClient.estimateRoi !== "function") {
+        throw new AppError(
+          503,
+          "Automatic ROI estimation is unavailable",
+          "ROI_ESTIMATION_UNAVAILABLE",
+        );
+      }
+
+      const videoPath = resolveVideoPath(task, config.uploadDir);
+      let result;
+      let cacheEntry;
+      try {
+        cacheEntry = roiEstimationCache.get(task.id);
+        if (!cacheEntry) {
+          cacheEntry = {
+            promise: aiClient.estimateRoi({ ...task, videoPath }),
+            timer: null,
+          };
+          roiEstimationCache.set(task.id, cacheEntry);
+        }
+        result = await cacheEntry.promise;
+        if (!cacheEntry.timer && roiEstimationCache.get(task.id) === cacheEntry) {
+          cacheEntry.timer = setTimeout(
+            () => clearRoiEstimation(task.id, cacheEntry),
+            ROI_ESTIMATION_CACHE_MS,
+          );
+          cacheEntry.timer.unref?.();
+        }
+      } catch (error) {
+        clearRoiEstimation(task.id, cacheEntry);
+        throw new AppError(
+          502,
+          `Automatic ROI estimation failed: ${describeAiError(error)}`,
+          "ROI_ESTIMATION_FAILED",
+        );
+      }
+
+      const currentTask = await store.findById(task.id);
+      if (currentTask?.status !== "awaiting_roi") {
+        clearRoiEstimation(task.id, cacheEntry);
+        throw new AppError(
+          409,
+          `Task ROI cannot be estimated while it is ${currentTask?.status || "unavailable"}`,
+          "TASK_STATE_CONFLICT",
+          { status: currentTask?.status || null },
+        );
+      }
+
+      if (result?.success === false) {
+        res.json({
+          success: false,
+          reason: result.reason === "no subtitle detected"
+            ? "no subtitle detected"
+            : String(result.reason || "no subtitle detected"),
+        });
+        return;
+      }
+      if (result?.success !== true) {
+        clearRoiEstimation(task.id, cacheEntry);
+        throw new AppError(
+          502,
+          "AI service returned an invalid ROI estimation response",
+          "INVALID_ROI_ESTIMATION_RESPONSE",
+        );
+      }
+
+      let roi;
+      try {
+        roi = validateRoi(result.roi);
+      } catch {
+        clearRoiEstimation(task.id, cacheEntry);
+        throw new AppError(
+          502,
+          "AI service returned an invalid ROI",
+          "INVALID_ROI_ESTIMATION_RESPONSE",
+        );
+      }
+      res.json({ success: true, roi });
+    }),
+  );
+
+  router.post(
     "/:id/start",
     asyncHandler(async (req, res) => {
       const task = await findTaskOrThrow(store, req.params.id);
@@ -384,6 +486,7 @@ export function createTasksRouter({
         );
       }
 
+      clearRoiEstimation(task.id);
       processor.enqueue(task.id);
       res.status(202).json(taskToDto(queued));
     }),

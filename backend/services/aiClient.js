@@ -72,6 +72,21 @@ export class AiClient {
     }
   }
 
+  async estimateRoi(task, { signal } = {}) {
+    const form = new FormData();
+    const fileOptions = {
+      filename: task.filename,
+      contentType: "video/mp4",
+    };
+    if (Number.isFinite(task.metadata?.size)) fileOptions.knownLength = task.metadata.size;
+    form.append("video", fs.createReadStream(task.videoPath), fileOptions);
+    const response = await this.http.post("/estimate-roi", form, {
+      headers: form.getHeaders(),
+      signal,
+    });
+    return response.data;
+  }
+
   async getJob(jobId) {
     const response = await this.http.get(`/jobs/${encodeURIComponent(jobId)}`);
     return unwrapJobResponse(response.data);

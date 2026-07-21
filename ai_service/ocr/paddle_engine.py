@@ -17,9 +17,15 @@ os.environ.setdefault("FLAGS_enable_pir_api", "0")
 class PaddleOCREngine:
     name = "paddleocr"
 
-    def __init__(self, language: str = "en", min_confidence: float = 0.55) -> None:
+    def __init__(
+        self,
+        language: str = "en",
+        min_confidence: float = 0.55,
+        device: str = "cpu",
+    ) -> None:
         self.language = language
         self.min_confidence = min_confidence
+        self.device = device
         self._engine = None
         self._api_version = 3
 
@@ -47,7 +53,7 @@ class PaddleOCREngine:
                     text_recognition_model_name=(
                         "en_PP-OCRv5_mobile_rec" if self.language == "en" else None
                     ),
-                    device="cpu",
+                    device=self.device,
                     enable_mkldnn=False,
                     cpu_threads=max(1, min(6, os.cpu_count() or 2)),
                     text_det_limit_side_len=960,
@@ -58,7 +64,7 @@ class PaddleOCREngine:
                     use_angle_cls=False,
                     lang=self.language,
                     show_log=False,
-                    use_gpu=False,
+                    use_gpu=self.device.startswith("gpu"),
                     enable_mkldnn=False,
                 )
                 self._api_version = 2

@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from pathlib import Path
+from threading import Lock
 
 
 if __package__ in {None, ""}:
@@ -21,8 +22,11 @@ from fastapi.responses import FileResponse
 
 from ai_service.config import settings
 from ai_service.job_store import JobStore
+from ai_service.ocr.base import OCRUnavailableError
+from ai_service.ocr.paddle_engine import PaddleOCREngine
 from ai_service.pipeline import SubtitlePipeline
 from ai_service.progress import EventLogStore, PreviewStore, ProgressPublisher, new_run_id
+from ai_service.roi.estimator import estimate_video_roi
 from ai_service.schemas import JobRecord, NormalizedROI
 
 
@@ -174,6 +178,7 @@ async def _lifespan(_app: FastAPI):
 
 
 executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="subtitle-job")
+ocr_work_lock = Lock()
 
 app = FastAPI(
     title="AI Subtitle Studio - AI Service",
@@ -199,6 +204,83 @@ def health() -> dict:
         "paddlepaddle_installed": bool(importlib.util.find_spec("paddle")),
         "faster_whisper_installed": bool(importlib.util.find_spec("faster_whisper")),
         "data_dir": str(settings.data_dir),
+    }
+
+
+@app.post("/estimate-roi")
+def estimate_roi(
+    video: UploadFile = File(...),
+    language: str = Form(default="en"),
+    frame_count: int = Form(default=16),
+    confidence_threshold: float | None = Form(default=None),
+) -> dict:
+    """Run bounded PaddleOCR sampling without creating an analysis job."""
+
+    filename = Path(video.filename or "video.mp4").name
+    if Path(filename).suffix.lower() != ".mp4":
+        raise HTTPException(status_code=415, detail="仅支持 MP4 视频")
+    if not re.fullmatch(r"[A-Za-z0-9_-]{2,12}", language):
+        raise HTTPException(status_code=422, detail="language 格式无效")
+    if not 10 <= frame_count <= 20:
+        raise HTTPException(status_code=422, detail="frame_count 必须在 10 到 20 之间")
+    chosen_threshold = (
+        settings.min_ocr_confidence
+        if confidence_threshold is None
+        else confidence_threshold
+    )
+    if not 0 <= chosen_threshold <= 1:
+        raise HTTPException(
+            status_code=422,
+            detail="confidence_threshold 必须在 0 到 1 之间",
+        )
+
+    temporary_path = settings.videos_dir / f".roi-estimate-{uuid.uuid4().hex}.mp4"
+    maximum = settings.max_upload_mb * 1024 * 1024
+    size = 0
+    lock_acquired = False
+    try:
+        lock_acquired = ocr_work_lock.acquire(blocking=False)
+        if not lock_acquired:
+            raise HTTPException(status_code=503, detail="AI 服务正忙，请使用人工字幕区域")
+        with temporary_path.open("wb") as target:
+            while chunk := video.file.read(1024 * 1024):
+                size += len(chunk)
+                if size > maximum:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"视频超过 {settings.max_upload_mb} MB 限制",
+                    )
+                target.write(chunk)
+
+        engine = PaddleOCREngine(
+            language,
+            chosen_threshold,
+            settings.ocr_device,
+        )
+        result = estimate_video_roi(
+            temporary_path,
+            engine,
+            frame_count=frame_count,
+            confidence_threshold=chosen_threshold,
+        )
+    except HTTPException:
+        raise
+    except OCRUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Automatic ROI estimation failed")
+        raise HTTPException(status_code=500, detail="字幕区域估计失败") from exc
+    finally:
+        if lock_acquired:
+            ocr_work_lock.release()
+        video.file.close()
+        temporary_path.unlink(missing_ok=True)
+
+    if result is None:
+        return {"success": False, "reason": "no subtitle detected"}
+    return {
+        "success": True,
+        "roi": result.roi.model_dump(mode="json"),
     }
 
 
@@ -421,14 +503,15 @@ def _run_pipeline(
         def report(value: int, message: str) -> None:
             job_store.update_legacy_progress(task_id, value, message)
 
-        result = pipeline.process(
-            video_path,
-            settings.subtitles_dir / task_id,
-            enable_whisper=enable_whisper,
-            roi=roi,
-            progress=report,
-            event_publisher=publisher,
-        )
+        with ocr_work_lock:
+            result = pipeline.process(
+                video_path,
+                settings.subtitles_dir / task_id,
+                enable_whisper=enable_whisper,
+                roi=roi,
+                progress=report,
+                event_publisher=publisher,
+            )
         completion_message = f"处理完成，共生成 {len(result.subtitles)} 条字幕"
         # Write the complete successful result before its terminal event. If
         # the process exits anywhere in the following commit window, startup

@@ -27,6 +27,24 @@ def test_probe_and_sample(tmp_path: Path) -> None:
     assert frames[0].image.shape[:2] == (60, 160)
 
 
+def test_representative_frames_are_bounded_and_span_the_video(tmp_path: Path) -> None:
+    path = tmp_path / "representative.mp4"
+    writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), 10, (160, 120))
+    for index in range(40):
+        writer.write(np.full((120, 160, 3), index, dtype=np.uint8))
+    writer.release()
+
+    frames = list(VideoReader(path).representative_frames(16))
+
+    assert len(frames) == 16
+    assert frames[0].frame_index == 0
+    assert frames[-1].frame_index == 39
+    assert [frame.frame_index for frame in frames] == sorted(
+        {frame.frame_index for frame in frames}
+    )
+    assert all(frame.image.shape[:2] == (120, 160) for frame in frames)
+
+
 def test_arbitrary_normalized_roi_has_global_offsets(tmp_path: Path) -> None:
     path = tmp_path / "crop.mp4"
     writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), 10, (160, 120))

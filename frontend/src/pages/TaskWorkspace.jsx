@@ -2,12 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useBlocker, useNavigate, useParams } from 'react-router-dom'
 import {
   downloadSrt,
+  estimateTaskRoi,
   getSubtitles,
   getVideoUrl,
   saveSubtitles,
   startTaskRecognition,
 } from '../api/tasks'
 import AppHeader from '../components/AppHeader'
+import AutoROIPreview from '../components/AutoROIPreview'
 import ProcessingPanel from '../components/ProcessingPanel'
 import RoiSelectionPanel from '../components/RoiSelectionPanel'
 import { DraftRecoveryDialog, LeaveSafetyDialog } from '../components/SafetyDialogs'
@@ -17,6 +19,7 @@ import useTaskAnalysisProgress from '../hooks/useTaskAnalysisProgress'
 import useTaskPolling from '../hooks/useTaskPolling'
 import EditorPage from './EditorPage'
 import { deleteSubtitleDraft, getSubtitleDraft, saveSubtitleDraft } from '../utils/draftStore'
+import { isValidRoi, roundRoi } from '../utils/roi'
 import {
   makeClientId,
   normalizeSubtitles,
@@ -29,6 +32,10 @@ export default function TaskWorkspace() {
   const navigate = useNavigate()
   const [recognitionStarting, setRecognitionStarting] = useState(false)
   const [recognitionError, setRecognitionError] = useState('')
+  const [roiStateTaskId, setRoiStateTaskId] = useState(taskId)
+  const [roiStage, setRoiStage] = useState('estimating')
+  const [predictedRoi, setPredictedRoi] = useState(null)
+  const [autoRoiNotice, setAutoRoiNotice] = useState('')
   const [subtitles, setSubtitles] = useState([])
   const [subtitlesLoading, setSubtitlesLoading] = useState(false)
   const [subtitlesError, setSubtitlesError] = useState(null)
@@ -46,6 +53,7 @@ export default function TaskWorkspace() {
   const dirtyRef = useRef(dirty)
   const editVersionRef = useRef(editVersion)
   const saveInFlightRef = useRef(null)
+  const autoRoiAbortRef = useRef(null)
   const { task, loading: taskLoading, error: taskError, refresh } = useTaskPolling(taskId)
   const analysis = useTaskAnalysisProgress(taskId, task, refresh)
   const blocker = useBlocker(dirty)
@@ -54,6 +62,47 @@ export default function TaskWorkspace() {
   const notify = useCallback((message, type = 'success') => {
     setNotice({ message, type, id: Date.now() })
   }, [])
+
+  useEffect(() => {
+    if (!taskId || task?.status !== 'awaiting_roi') return undefined
+    const controller = new AbortController()
+    autoRoiAbortRef.current = controller
+    const startTimer = window.setTimeout(() => {
+      if (controller.signal.aborted) return
+      setRoiStateTaskId(taskId)
+      setRoiStage('estimating')
+      setPredictedRoi(null)
+      setAutoRoiNotice('')
+      setRecognitionError('')
+
+      estimateTaskRoi(taskId, controller.signal)
+        .then((result) => {
+          if (controller.signal.aborted) return
+          if (result?.success === true && isValidRoi(result.roi)) {
+            setPredictedRoi(roundRoi(result.roi))
+            setRoiStage('preview')
+            return
+          }
+          setRoiStage('manual')
+          setAutoRoiNotice('未检测到稳定的字幕区域，已切换为人工选择。')
+        })
+        .catch((error) => {
+          if (controller.signal.aborted || error?.name === 'AbortError') return
+          if (error?.status === 409) {
+            refresh()
+            return
+          }
+          setRoiStage('manual')
+          setAutoRoiNotice('自动字幕区域估计暂不可用，已切换为人工选择。')
+        })
+    }, 0)
+
+    return () => {
+      window.clearTimeout(startTimer)
+      controller.abort()
+      if (autoRoiAbortRef.current === controller) autoRoiAbortRef.current = null
+    }
+  }, [refresh, task?.status, taskId])
 
   useEffect(() => {
     if (!dirty) return undefined
@@ -268,6 +317,9 @@ export default function TaskWorkspace() {
   const editorReady = Boolean(taskId && task?.status === 'completed')
   const awaitingRoi = Boolean(taskId && task?.status === 'awaiting_roi')
   const unrecoverableTaskError = Boolean(taskId && taskError && !task && !taskLoading)
+  const roiStateIsCurrent = roiStateTaskId === taskId
+  const currentRoiStage = roiStateIsCurrent ? roiStage : 'estimating'
+  const currentPredictedRoi = roiStateIsCurrent ? predictedRoi : null
 
   return (
     <div className="app-shell">
@@ -285,8 +337,37 @@ export default function TaskWorkspace() {
       />
 
       {unrecoverableTaskError && <TaskNotFound error={taskError} onRetry={refresh} onNewTask={() => navigate('/tasks/new')} />}
-      {awaitingRoi && !unrecoverableTaskError && (
-        <RoiSelectionPanel key={taskId} task={task} videoUrl={getVideoUrl(taskId)} submitting={recognitionStarting} error={recognitionError} onConfirm={handleStartRecognition} onNewTask={() => navigate('/tasks/new')} />
+      {awaitingRoi && !unrecoverableTaskError && currentRoiStage !== 'manual' && (
+        <AutoROIPreview
+          task={task}
+          videoUrl={getVideoUrl(taskId)}
+          roi={currentPredictedRoi}
+          loading={currentRoiStage === 'estimating'}
+          submitting={recognitionStarting}
+          error={recognitionError}
+          onUse={handleStartRecognition}
+          onReselect={() => {
+            autoRoiAbortRef.current?.abort()
+            setRoiStateTaskId(taskId)
+            setAutoRoiNotice(currentPredictedRoi
+              ? '可在 AI 预测区域的基础上继续调整。'
+              : '已切换为人工字幕区域选择。')
+            setRoiStage('manual')
+          }}
+          onNewTask={() => navigate('/tasks/new')}
+        />
+      )}
+      {awaitingRoi && !unrecoverableTaskError && currentRoiStage === 'manual' && (
+        <RoiSelectionPanel
+          key={`manual-${taskId}`}
+          task={currentPredictedRoi ? { ...task, roi: currentPredictedRoi } : task}
+          videoUrl={getVideoUrl(taskId)}
+          submitting={recognitionStarting}
+          error={recognitionError}
+          notice={autoRoiNotice}
+          onConfirm={handleStartRecognition}
+          onNewTask={() => navigate('/tasks/new')}
+        />
       )}
       {!unrecoverableTaskError && !editorReady && !awaitingRoi && (
         <ProcessingPanel task={task} loading={taskLoading} pollingError={taskError} analysis={analysis} onRetry={refresh} onNewTask={() => navigate('/tasks/new')} />

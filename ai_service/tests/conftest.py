@@ -14,6 +14,10 @@ _TEMP_PARENT = _ROOT / ".tmp-ai-service-tests"
 _TEMP_PARENT.mkdir(parents=True, exist_ok=True)
 _TEST_DATA = Path(tempfile.mkdtemp(prefix="run-", dir=_TEMP_PARENT))
 os.environ["DATA_DIR"] = str(_TEST_DATA)
+# Keep tests that explicitly verify repository defaults independent from a
+# developer's local performance-tuning values in ai_service/.env.
+os.environ["BOUNDARY_OCR_BUDGET"] = "2"
+os.environ["DISCOVERY_OCR_BUDGET"] = "24"
 
 
 def pytest_sessionfinish(session, exitstatus) -> None:  # noqa: ARG001

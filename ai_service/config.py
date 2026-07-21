@@ -33,6 +33,7 @@ class Settings:
     roi_top_ratio: float = float(os.getenv("OCR_ROI_TOP", "0.45"))
     roi_bottom_ratio: float = float(os.getenv("OCR_ROI_BOTTOM", "0.84"))
     ocr_language: str = os.getenv("OCR_LANGUAGE", "en")
+    ocr_device: str = os.getenv("OCR_DEVICE", "cpu")
     min_ocr_confidence: float = float(os.getenv("MIN_OCR_CONFIDENCE", "0.55"))
     text_similarity_threshold: float = float(os.getenv("TEXT_SIMILARITY_THRESHOLD", "0.68"))
     max_missing_seconds: float = float(os.getenv("MAX_MISSING_SECONDS", "0.8"))

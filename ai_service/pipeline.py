@@ -50,8 +50,10 @@ class SubtitlePipeline:
     ) -> None:
         self.settings = settings
         self.ocr = ocr_engine or PaddleOCREngine(
-            settings.ocr_language, settings.min_ocr_confidence
-        )
+            settings.ocr_language,
+        settings.min_ocr_confidence,
+        settings.ocr_device,
+    )
         self.whisper = whisper_engine or FasterWhisperEngine(
             settings.whisper_model,
             settings.whisper_device,
