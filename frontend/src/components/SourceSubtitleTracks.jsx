@@ -1,5 +1,6 @@
 import { CaptionsIcon, PlayIcon, RotateIcon } from './Icons'
 import { formatTimestamp } from '../utils/subtitles'
+import { isAudioOnlyMode } from '../utils/analysisMode'
 
 function formatTime(value) {
   return Number.isFinite(value) ? formatTimestamp(value) : '—'
@@ -94,12 +95,21 @@ function VisualTrack({ subtitles, loading, error, actionsDisabled, onRetry, onUs
   )
 }
 
-function AudioTrack({ subtitles, loading, error, actionsDisabled, onRetry, onUse, onSeek }) {
+function AudioTrack({
+  subtitles,
+  loading,
+  error,
+  actionsDisabled,
+  onRetry,
+  onUse,
+  onSeek,
+  audioOnly,
+}) {
   return (
     <section className="source-track source-track-audio" aria-labelledby="audio-track-title">
       <SourceHeader
         title={<span id="audio-track-title">音频字幕 WhisperX</span>}
-        subtitle="词级时间戳"
+        subtitle={audioOnly ? '词级时间戳 · 纯音频模式' : '词级时间戳'}
         count={subtitles.length}
         actionLabel="Use Audio"
         onUse={onUse}
@@ -140,6 +150,7 @@ function AudioTrack({ subtitles, loading, error, actionsDisabled, onRetry, onUse
 }
 
 export default function SourceSubtitleTracks({
+  analysisMode,
   visualSubtitles = [],
   audioSubtitles = [],
   visualLoading = false,
@@ -153,17 +164,24 @@ export default function SourceSubtitleTracks({
   onUseAudio,
   onSeek,
 }) {
+  const audioOnly = isAudioOnlyMode(analysisMode)
+
   return (
-    <section className="source-tracks" aria-label="独立字幕来源">
-      <VisualTrack
-        subtitles={visualSubtitles}
-        loading={visualLoading}
-        error={visualError}
-        actionsDisabled={actionsDisabled}
-        onRetry={onRetryVisual}
-        onUse={onUseVisual}
-        onSeek={onSeek}
-      />
+    <section
+      className={`source-tracks ${audioOnly ? 'is-audio-only' : ''}`}
+      aria-label="独立字幕来源"
+    >
+      {!audioOnly && (
+        <VisualTrack
+          subtitles={visualSubtitles}
+          loading={visualLoading}
+          error={visualError}
+          actionsDisabled={actionsDisabled}
+          onRetry={onRetryVisual}
+          onUse={onUseVisual}
+          onSeek={onSeek}
+        />
+      )}
       <AudioTrack
         subtitles={audioSubtitles}
         loading={audioLoading}
@@ -172,6 +190,7 @@ export default function SourceSubtitleTracks({
         onRetry={onRetryAudio}
         onUse={onUseAudio}
         onSeek={onSeek}
+        audioOnly={audioOnly}
       />
     </section>
   )

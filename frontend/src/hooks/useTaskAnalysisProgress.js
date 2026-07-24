@@ -6,6 +6,7 @@ import {
   hydrateAnalysisSnapshot,
   reduceAnalysisEvent,
 } from '../utils/analysisProgress'
+import { getTaskAnalysisMode, ANALYSIS_MODES } from '../utils/analysisMode'
 
 export const ANALYSIS_RETRY_DELAYS = [600, 1200, 2400, 4800, 8000]
 const ACTIVE_TASK_STATUSES = new Set(['queued', 'processing'])
@@ -78,8 +79,13 @@ export default function useTaskAnalysisProgress(taskId, task, onTerminal) {
   }, [replaceProgress, task, taskId])
 
   const taskStatus = task?.status
+  const analysisMode = getTaskAnalysisMode(task)
   useEffect(() => {
-    if (!taskId || !ACTIVE_TASK_STATUSES.has(taskStatus)) return undefined
+    if (
+      !taskId
+      || analysisMode === ANALYSIS_MODES.AUDIO
+      || !ACTIVE_TASK_STATUSES.has(taskStatus)
+    ) return undefined
 
     let stopped = false
     let controller = null
@@ -188,7 +194,7 @@ export default function useTaskAnalysisProgress(taskId, task, onTerminal) {
       stopped = true
       controller?.abort()
     }
-  }, [acceptEvent, retryToken, taskId, taskStatus])
+  }, [acceptEvent, analysisMode, retryToken, taskId, taskStatus])
 
   const retry = useCallback(() => {
     terminalRef.current = false

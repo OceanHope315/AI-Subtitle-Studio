@@ -34,6 +34,7 @@ import {
   normalizeVisualSubtitles,
   visualTrackToFinalSubtitles,
 } from '../utils/sourceSubtitles'
+import { ANALYSIS_MODES, getTaskAnalysisMode } from '../utils/analysisMode'
 
 export default function TaskWorkspace() {
   const { taskId } = useParams()
@@ -71,6 +72,8 @@ export default function TaskWorkspace() {
   const saveInFlightRef = useRef(null)
   const autoRoiAbortRef = useRef(null)
   const { task, loading: taskLoading, error: taskError, refresh } = useTaskPolling(taskId)
+  const analysisMode = getTaskAnalysisMode(task)
+  const audioOnly = analysisMode === ANALYSIS_MODES.AUDIO
   const analysis = useTaskAnalysisProgress(taskId, task, refresh)
   const blocker = useBlocker(dirty)
 
@@ -80,7 +83,7 @@ export default function TaskWorkspace() {
   }, [])
 
   useEffect(() => {
-    if (!taskId || task?.status !== 'awaiting_roi') return undefined
+    if (!taskId || audioOnly || task?.status !== 'awaiting_roi') return undefined
     const controller = new AbortController()
     autoRoiAbortRef.current = controller
     const startTimer = window.setTimeout(() => {
@@ -118,7 +121,7 @@ export default function TaskWorkspace() {
       controller.abort()
       if (autoRoiAbortRef.current === controller) autoRoiAbortRef.current = null
     }
-  }, [refresh, task?.status, taskId])
+  }, [audioOnly, refresh, task?.status, taskId])
 
   useEffect(() => {
     if (!dirty) return undefined
@@ -176,6 +179,14 @@ export default function TaskWorkspace() {
 
   useEffect(() => {
     if (!taskId || task?.status !== 'completed') return undefined
+    if (audioOnly) {
+      const clearTimer = window.setTimeout(() => {
+        setVisualSubtitles([])
+        setVisualSubtitlesLoading(false)
+        setVisualSubtitlesError(null)
+      }, 0)
+      return () => window.clearTimeout(clearTimer)
+    }
     const controller = new AbortController()
     const startTimer = window.setTimeout(() => {
       setVisualSubtitles([])
@@ -201,7 +212,14 @@ export default function TaskWorkspace() {
       window.clearTimeout(startTimer)
       controller.abort()
     }
-  }, [task?.status, task?.visual_error, task?.visual_status, taskId, visualSubtitleReload])
+  }, [
+    audioOnly,
+    task?.status,
+    task?.visual_error,
+    task?.visual_status,
+    taskId,
+    visualSubtitleReload,
+  ])
 
   useEffect(() => {
     if (!taskId || task?.status !== 'completed') return undefined
@@ -423,11 +441,13 @@ export default function TaskWorkspace() {
   }
 
   const editorReady = Boolean(taskId && task?.status === 'completed')
-  const awaitingRoi = Boolean(taskId && task?.status === 'awaiting_roi')
+  const awaitingRoi = Boolean(taskId && !audioOnly && task?.status === 'awaiting_roi')
   const unrecoverableTaskError = Boolean(taskId && taskError && !task && !taskLoading)
-  const visualTrackError = visualSubtitlesError || (task?.visual_status === 'failed'
-    ? { message: task.visual_error || '视觉字幕提取失败。' }
-    : null)
+  const visualTrackError = audioOnly
+    ? null
+    : (visualSubtitlesError || (task?.visual_status === 'failed'
+      ? { message: task.visual_error || '视觉字幕提取失败。' }
+      : null))
   const audioTrackError = audioSubtitlesError || (task?.audio_status === 'failed'
     ? { message: task.audio_error || '音频字幕提取失败。' }
     : null)
@@ -497,6 +517,7 @@ export default function TaskWorkspace() {
           )}
           <EditorPage
             task={task}
+            analysisMode={analysisMode}
             subtitles={subtitles}
             subtitlesLoading={subtitlesLoading}
             subtitlesError={subtitlesError}

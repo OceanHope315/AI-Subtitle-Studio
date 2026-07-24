@@ -31,6 +31,7 @@ vi.mock('../utils/draftStore', () => ({
 }))
 vi.mock('./EditorPage', () => ({
   default: ({
+    analysisMode,
     subtitles,
     visualSubtitles,
     audioSubtitles,
@@ -41,6 +42,7 @@ vi.mock('./EditorPage', () => ({
     onUseAudio,
   }) => (
     <section aria-label="测试编辑器">
+      <span data-testid="analysis-mode">{analysisMode}</span>
       <span>{subtitles[0]?.text}</span>
       <span data-testid="visual-source">{visualSubtitles?.[0]?.text || visualSubtitlesError?.message}</span>
       <span data-testid="audio-source">{audioSubtitles?.[0]?.text || audioSubtitlesError?.message}</span>
@@ -179,6 +181,36 @@ describe('TaskWorkspace subtitle safety', () => {
 
     await waitFor(() => expect(screen.getByTestId('visual-source')).toHaveTextContent('visual unavailable'))
     expect(screen.getByTestId('audio-source')).toHaveTextContent('audio survived')
+  })
+
+  it('loads final and audio tracks but skips the visual endpoint in audio-only mode', async () => {
+    useTaskPolling.mockReturnValue({
+      task: {
+        taskId: '00000000-0000-4000-8000-000000000001',
+        status: 'completed',
+        filename: 'podcast.mp4',
+        analysis_mode: 'audio',
+      },
+      loading: false,
+      error: null,
+      refresh: vi.fn(),
+    })
+    getAudioSubtitles.mockResolvedValue([{
+      taskId: '00000000-0000-4000-8000-000000000001',
+      text: 'audio only result',
+      start: 1,
+      end: 2,
+      words: [],
+    }])
+
+    renderWorkspace()
+
+    expect(await screen.findByText('original')).toBeInTheDocument()
+    await waitFor(() => expect(getAudioSubtitles).toHaveBeenCalledTimes(1))
+    expect(getSubtitles).toHaveBeenCalledTimes(1)
+    expect(getVisualSubtitles).not.toHaveBeenCalled()
+    expect(screen.getByTestId('analysis-mode')).toHaveTextContent('audio')
+    expect(screen.getByTestId('audio-source')).toHaveTextContent('audio only result')
   })
 
   it('replaces the whole final track from audio words and saves only FinalSubtitle fields', async () => {

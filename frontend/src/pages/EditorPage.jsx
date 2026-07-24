@@ -8,6 +8,7 @@ import { findSubtitleAtTime } from '../utils/subtitles'
 
 export default function EditorPage({
   task,
+  analysisMode,
   subtitles,
   subtitlesLoading,
   subtitlesError,
@@ -83,6 +84,7 @@ export default function EditorPage({
         />
       </div>
       <SourceSubtitleTracks
+        analysisMode={analysisMode}
         visualSubtitles={visualSubtitles}
         audioSubtitles={audioSubtitles}
         visualLoading={visualSubtitlesLoading}

@@ -15,6 +15,12 @@ import {
 } from "../utils/video.js";
 import { normalizeSubtitles } from "../services/subtitleService.js";
 import { describeAiError } from "../services/aiClient.js";
+import {
+  ANALYSIS_MODES,
+  ANALYSIS_MODE_VALUES,
+  DEFAULT_ANALYSIS_MODE,
+  isAudioOnlyTask,
+} from "../utils/analysisMode.js";
 
 const TASK_ID_PATTERN = /^[a-f\d]{8}-[a-f\d]{4}-[1-5][a-f\d]{3}-[89ab][a-f\d]{3}-[a-f\d]{12}$/i;
 const ACCEPTED_MP4_MIME_TYPES = new Set(["video/mp4", "application/mp4", "application/octet-stream"]);
@@ -22,6 +28,20 @@ const TASK_STATUSES = new Set(["awaiting_roi", "queued", "processing", "complete
 const PREVIEW_ID_PATTERN = RUN_ID_PATTERN;
 const ROI_ESTIMATION_CACHE_MS = 30_000;
 export const MIN_ROI_DIMENSION = 0.01;
+
+export function validateAnalysisMode(value) {
+  const normalized = value === undefined || value === null || value === ""
+    ? DEFAULT_ANALYSIS_MODE
+    : value;
+  if (typeof normalized !== "string" || !ANALYSIS_MODE_VALUES.includes(normalized)) {
+    throw new AppError(
+      400,
+      `analysis_mode must be one of: ${ANALYSIS_MODE_VALUES.join(", ")}`,
+      "INVALID_ANALYSIS_MODE",
+    );
+  }
+  return normalized;
+}
 
 function validateTaskId(value) {
   if (!TASK_ID_PATTERN.test(value)) {
@@ -192,6 +212,8 @@ export function createTasksRouter({
     asyncHandler(async (req, res) => {
       if (!req.file) throw new AppError(400, "Multipart field 'video' is required", "VIDEO_REQUIRED");
 
+      let task;
+      let audioOnly = false;
       try {
         if (!await isMp4File(req.file.path)) {
           throw new AppError(415, "Uploaded file is not a valid MP4 container", "INVALID_MP4");
@@ -199,15 +221,20 @@ export function createTasksRouter({
 
         const id = crypto.randomUUID();
         const filename = safeOriginalFilename(req.file.originalname);
-        const task = await store.create({
+        const analysisMode = validateAnalysisMode(req.body?.analysis_mode);
+        audioOnly = analysisMode === ANALYSIS_MODES.AUDIO;
+        task = await store.create({
           id,
           filename,
           storedFilename: req.file.filename,
           videoPath: path.resolve(req.file.path),
-          status: "awaiting_roi",
+          analysisMode,
+          status: audioOnly ? "queued" : "awaiting_roi",
           roi: null,
           progress: 0,
-          message: "Select the subtitle region to begin processing",
+          message: audioOnly
+            ? "Waiting for audio processing"
+            : "Select the subtitle region to begin processing",
           metadata: {
             size: req.file.size,
             mimetype: "video/mp4",
@@ -215,8 +242,8 @@ export function createTasksRouter({
           subtitles: [],
           visualSubtitles: [],
           audioSubtitles: [],
-          visualStatus: "pending",
-          audioStatus: "pending",
+          visualStatus: audioOnly ? "skipped" : "pending",
+          audioStatus: audioOnly ? "queued" : "pending",
           visualProgress: 0,
           audioProgress: 0,
           visualError: null,
@@ -230,12 +257,13 @@ export function createTasksRouter({
           aiJobId: null,
           progressSnapshot: null,
         });
-
-        res.location(`/api/tasks/${id}`).status(201).json(taskToDto(task));
       } catch (error) {
         await removeUploadedFile(req.file);
         throw error;
       }
+
+      if (audioOnly) processor.enqueue(task.id);
+      res.location(`/api/tasks/${task.id}`).status(201).json(taskToDto(task));
     }),
   );
 
@@ -243,6 +271,13 @@ export function createTasksRouter({
     "/:id/events",
     asyncHandler(async (req, res) => {
       const task = await findTaskOrThrow(store, req.params.id);
+      if (isAudioOnlyTask(task)) {
+        throw new AppError(
+          409,
+          "Visual progress events are not available for audio-only tasks",
+          "VISUAL_PROGRESS_NOT_APPLICABLE",
+        );
+      }
       if (!progressEventHub) {
         throw new AppError(503, "Live progress is not available", "PROGRESS_UNAVAILABLE");
       }

@@ -1,3 +1,5 @@
+import { ANALYSIS_MODES, normalizeAnalysisMode } from '../utils/analysisMode'
+
 const configuredBase = import.meta.env.VITE_API_BASE_URL?.trim()
 
 export const API_BASE_URL = (configuredBase || 'http://localhost:3001/api').replace(/\/$/, '')
@@ -153,10 +155,15 @@ export async function streamTaskEvents(taskId, {
   }
 }
 
-export function uploadVideo(file, onProgress) {
+export function uploadVideo(
+  file,
+  onProgress,
+  analysisMode = ANALYSIS_MODES.AUDIO_VISUAL,
+) {
   return new Promise((resolve, reject) => {
     const formData = new FormData()
     formData.append('video', file)
+    formData.append('analysis_mode', normalizeAnalysisMode(analysisMode))
 
     const xhr = new XMLHttpRequest()
     xhr.open('POST', `${API_BASE_URL}/tasks`)

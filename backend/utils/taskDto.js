@@ -1,3 +1,5 @@
+import { ANALYSIS_MODES, analysisModeOf } from "./analysisMode.js";
+
 function sharedTaskFields(task) {
   if (!task) return null;
   const id = task.id;
@@ -7,14 +9,18 @@ function sharedTaskFields(task) {
   const audioSubtitlesUrl = `/api/tasks/${encodeURIComponent(id)}/audio-subtitles`;
   const exportUrl = `/api/tasks/${encodeURIComponent(id)}/export`;
   const sourceStatus = (source) => {
+    if (source === "visual" && analysisModeOf(task) === ANALYSIS_MODES.AUDIO) return "skipped";
     const value = task[`${source}Status`];
-    if (["pending", "queued", "processing", "completed", "failed"].includes(value)) return value;
+    if (["pending", "queued", "processing", "completed", "failed", "skipped"].includes(value)) {
+      return value;
+    }
     if (source === "visual" && ["queued", "processing", "completed", "failed"].includes(task.status)) {
       return task.status;
     }
     return "pending";
   };
   const sourceProgress = (source) => {
+    if (source === "visual" && analysisModeOf(task) === ANALYSIS_MODES.AUDIO) return 0;
     const value = Number(task[`${source}Progress`]);
     if (Number.isFinite(value)) return Math.min(100, Math.max(0, value));
     if (source === "visual") return Number.isFinite(Number(task.progress)) ? Number(task.progress) : 0;
@@ -25,6 +31,7 @@ function sharedTaskFields(task) {
     taskId: id,
     task_id: id,
     filename: task.filename,
+    analysis_mode: analysisModeOf(task),
     status: task.status,
     roi: task.roi || null,
     progress: task.progress,

@@ -129,6 +129,35 @@ describe('ProcessingPanel real analysis UI', () => {
     expect(screen.getByText('正在识别采样帧')).toBeInTheDocument()
   })
 
+  it('uses polling-only audio progress and hides visual analysis for audio-only tasks', () => {
+    renderPanel(makeProgress(), undefined, {
+      analysis_mode: 'audio',
+      visual_status: 'skipped',
+      audio_status: 'processing',
+      audio_progress: 48,
+    })
+
+    expect(screen.getByText(/纯音频模式/)).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('音频分析中')
+    expect(screen.getByRole('progressbar', { name: '音频字幕提取进度' }))
+      .toHaveAttribute('aria-valuenow', '48')
+    expect(screen.queryByText('PaddleOCR 视觉字幕')).not.toBeInTheDocument()
+    expect(screen.queryByRole('progressbar', { name: '视觉字幕提取进度' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('progressbar', { name: '当前阶段进度' })).not.toBeInTheDocument()
+    expect(screen.queryByAltText('当前分析原帧')).not.toBeInTheDocument()
+  })
+
+  it('uses audio-specific failure copy for an audio-only task', () => {
+    renderPanel(makeProgress(), undefined, {
+      analysis_mode: 'audio',
+      status: 'failed',
+    })
+
+    expect(screen.getByRole('alert')).toHaveTextContent('音频分析失败')
+    expect(screen.getByRole('alert')).toHaveTextContent('AI 服务处理音频时遇到问题')
+    expect(screen.queryByText('视频分析失败')).not.toBeInTheDocument()
+  })
+
   it('keeps processing when the visual SSE fails but the independent audio job is still running', () => {
     renderPanel(makeProgress({}, {
       terminal: 'failed',

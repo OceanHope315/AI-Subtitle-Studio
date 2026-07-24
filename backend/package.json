@@ -1,6 +1,6 @@
 {
   "name": "ai-subtitle-studio-backend",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Express API and task orchestration for AI Subtitle Studio",
   "type": "module",
