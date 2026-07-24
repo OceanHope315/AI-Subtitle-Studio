@@ -3,8 +3,10 @@ import { useBlocker, useNavigate, useParams } from 'react-router-dom'
 import {
   downloadSrt,
   estimateTaskRoi,
+  getAudioSubtitles,
   getSubtitles,
   getVideoUrl,
+  getVisualSubtitles,
   saveSubtitles,
   startTaskRecognition,
 } from '../api/tasks'
@@ -26,6 +28,12 @@ import {
   toApiSubtitles,
   validateSubtitles,
 } from '../utils/subtitles'
+import {
+  audioTrackToFinalSubtitles,
+  normalizeAudioSubtitles,
+  normalizeVisualSubtitles,
+  visualTrackToFinalSubtitles,
+} from '../utils/sourceSubtitles'
 
 export default function TaskWorkspace() {
   const { taskId } = useParams()
@@ -40,6 +48,14 @@ export default function TaskWorkspace() {
   const [subtitlesLoading, setSubtitlesLoading] = useState(false)
   const [subtitlesError, setSubtitlesError] = useState(null)
   const [subtitleReload, setSubtitleReload] = useState(0)
+  const [visualSubtitles, setVisualSubtitles] = useState([])
+  const [visualSubtitlesLoading, setVisualSubtitlesLoading] = useState(false)
+  const [visualSubtitlesError, setVisualSubtitlesError] = useState(null)
+  const [visualSubtitleReload, setVisualSubtitleReload] = useState(0)
+  const [audioSubtitles, setAudioSubtitles] = useState([])
+  const [audioSubtitlesLoading, setAudioSubtitlesLoading] = useState(false)
+  const [audioSubtitlesError, setAudioSubtitlesError] = useState(null)
+  const [audioSubtitleReload, setAudioSubtitleReload] = useState(0)
   const [revision, setRevision] = useState(0)
   const [dirty, setDirty] = useState(false)
   const [saveStatus, setSaveStatus] = useState('synced')
@@ -158,6 +174,64 @@ export default function TaskWorkspace() {
     }
   }, [task?.revision, task?.status, task?.subtitles, taskId, subtitleReload])
 
+  useEffect(() => {
+    if (!taskId || task?.status !== 'completed') return undefined
+    const controller = new AbortController()
+    const startTimer = window.setTimeout(() => {
+      setVisualSubtitles([])
+      setVisualSubtitlesLoading(true)
+      setVisualSubtitlesError(null)
+      getVisualSubtitles(taskId, controller.signal)
+        .then((result) => {
+          if (controller.signal.aborted) return
+          const normalized = normalizeVisualSubtitles(result)
+          setVisualSubtitles(normalized)
+          if (normalized.length === 0 && task?.visual_status === 'failed') {
+            setVisualSubtitlesError(new Error(task.visual_error || '视觉字幕提取失败。'))
+          }
+        })
+        .catch((error) => {
+          if (!controller.signal.aborted && error.name !== 'AbortError') setVisualSubtitlesError(error)
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setVisualSubtitlesLoading(false)
+        })
+    }, 0)
+    return () => {
+      window.clearTimeout(startTimer)
+      controller.abort()
+    }
+  }, [task?.status, task?.visual_error, task?.visual_status, taskId, visualSubtitleReload])
+
+  useEffect(() => {
+    if (!taskId || task?.status !== 'completed') return undefined
+    const controller = new AbortController()
+    const startTimer = window.setTimeout(() => {
+      setAudioSubtitles([])
+      setAudioSubtitlesLoading(true)
+      setAudioSubtitlesError(null)
+      getAudioSubtitles(taskId, controller.signal)
+        .then((result) => {
+          if (controller.signal.aborted) return
+          const normalized = normalizeAudioSubtitles(result)
+          setAudioSubtitles(normalized)
+          if (normalized.length === 0 && task?.audio_status === 'failed') {
+            setAudioSubtitlesError(new Error(task.audio_error || '音频字幕提取失败。'))
+          }
+        })
+        .catch((error) => {
+          if (!controller.signal.aborted && error.name !== 'AbortError') setAudioSubtitlesError(error)
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setAudioSubtitlesLoading(false)
+        })
+    }, 0)
+    return () => {
+      window.clearTimeout(startTimer)
+      controller.abort()
+    }
+  }, [audioSubtitleReload, task?.audio_error, task?.audio_status, task?.status, taskId])
+
   const markEdited = useCallback(() => {
     setDirty(true)
     dirtyRef.current = true
@@ -167,6 +241,34 @@ export default function TaskWorkspace() {
       return value + 1
     })
   }, [])
+
+  const replaceFinalTrack = useCallback((nextSubtitles, sourceLabel) => {
+    if (nextSubtitles.length === 0) {
+      notify(`${sourceLabel}中没有可用于最终字幕的有效片段。`, 'error')
+      return false
+    }
+    if (
+      dirtyRef.current
+      && !window.confirm(`当前最终字幕还有未同步的修改。确定要用${sourceLabel}替换整条最终字幕轨吗？`)
+    ) {
+      return false
+    }
+
+    const normalized = normalizeSubtitles(nextSubtitles)
+    subtitlesRef.current = normalized
+    setSubtitles(normalized)
+    markEdited()
+    notify(`已用${sourceLabel}替换最终字幕轨。`)
+    return true
+  }, [markEdited, notify])
+
+  const handleUseVisual = useCallback(() => {
+    replaceFinalTrack(visualTrackToFinalSubtitles(visualSubtitles), '视觉字幕')
+  }, [replaceFinalTrack, visualSubtitles])
+
+  const handleUseAudio = useCallback(() => {
+    replaceFinalTrack(audioTrackToFinalSubtitles(audioSubtitles), '音频字幕')
+  }, [audioSubtitles, replaceFinalTrack])
 
   const persistSubtitles = useCallback(async (showSuccess = true) => {
     if (saveInFlightRef.current) await saveInFlightRef.current.catch(() => {})
@@ -303,7 +405,13 @@ export default function TaskWorkspace() {
   const handleExport = async () => {
     setExporting(true)
     try {
-      if (dirtyRef.current && !await persistSubtitles(false)) return
+      if (dirtyRef.current) {
+        const saved = await persistSubtitles(false)
+        if (!saved || dirtyRef.current) {
+          notify('最终字幕尚未同步到服务端，已阻止导出旧版 SRT。', 'error')
+          return
+        }
+      }
       const baseName = (task?.filename || 'final').replace(/\.mp4$/i, '')
       await downloadSrt(taskId, `${baseName}.srt`)
       notify('SRT 字幕已导出')
@@ -317,6 +425,12 @@ export default function TaskWorkspace() {
   const editorReady = Boolean(taskId && task?.status === 'completed')
   const awaitingRoi = Boolean(taskId && task?.status === 'awaiting_roi')
   const unrecoverableTaskError = Boolean(taskId && taskError && !task && !taskLoading)
+  const visualTrackError = visualSubtitlesError || (task?.visual_status === 'failed'
+    ? { message: task.visual_error || '视觉字幕提取失败。' }
+    : null)
+  const audioTrackError = audioSubtitlesError || (task?.audio_status === 'failed'
+    ? { message: task.audio_error || '音频字幕提取失败。' }
+    : null)
   const roiStateIsCurrent = roiStateTaskId === taskId
   const currentRoiStage = roiStateIsCurrent ? roiStage : 'estimating'
   const currentPredictedRoi = roiStateIsCurrent ? predictedRoi : null
@@ -381,7 +495,27 @@ export default function TaskWorkspace() {
                 : '当前为离线草稿：任务已保存，但字幕修改尚未同步到服务端。'}
             </div>
           )}
-          <EditorPage task={task} subtitles={subtitles} subtitlesLoading={subtitlesLoading} subtitlesError={subtitlesError} onSubtitleChange={handleSubtitleChange} onSubtitleDelete={handleSubtitleDelete} onSubtitleAdd={handleSubtitleAdd} onRetrySubtitles={() => setSubtitleReload((value) => value + 1)} onVideoError={() => notify('视频加载失败，请确认后端视频接口可访问。', 'error')} />
+          <EditorPage
+            task={task}
+            subtitles={subtitles}
+            subtitlesLoading={subtitlesLoading}
+            subtitlesError={subtitlesError}
+            visualSubtitles={visualSubtitles}
+            visualSubtitlesLoading={visualSubtitlesLoading}
+            visualSubtitlesError={visualTrackError}
+            audioSubtitles={audioSubtitles}
+            audioSubtitlesLoading={audioSubtitlesLoading}
+            audioSubtitlesError={audioTrackError}
+            onSubtitleChange={handleSubtitleChange}
+            onSubtitleDelete={handleSubtitleDelete}
+            onSubtitleAdd={handleSubtitleAdd}
+            onRetrySubtitles={() => setSubtitleReload((value) => value + 1)}
+            onRetryVisualSubtitles={() => setVisualSubtitleReload((value) => value + 1)}
+            onRetryAudioSubtitles={() => setAudioSubtitleReload((value) => value + 1)}
+            onUseVisual={handleUseVisual}
+            onUseAudio={handleUseAudio}
+            onVideoError={() => notify('视频加载失败，请确认后端视频接口可访问。', 'error')}
+          />
         </>
       )}
 

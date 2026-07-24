@@ -27,6 +27,16 @@ const CONNECTION_LABELS = {
   failed: '分析失败',
 }
 
+const SOURCE_STATUS_LABELS = {
+  pending: '等待中',
+  awaiting_roi: '等待字幕区域',
+  queued: '排队中',
+  processing: '处理中',
+  completed: '已完成',
+  failed: '失败',
+  skipped: '已跳过',
+}
+
 function clampProgress(progress) {
   const value = Number(progress)
   if (!Number.isFinite(value)) return 0
@@ -118,9 +128,15 @@ export default function ProcessingPanel({
   // Keep pixels, overlay, facts, and OCR candidates on the same event. The
   // pipeline cursor can advance between rate-limited preview images.
   const frame = frameAsset.displayed?.value || requestedPreviewFrame || pipelineFrame
-  const progress = clampProgress(model?.overallProgress ?? task?.progress)
-  const failed = task?.status === 'failed' || model?.terminal === 'failed'
-  const completed = task?.status === 'completed' || model?.terminal === 'completed'
+  // The SSE model describes only the visual pipeline. Parent task state and
+  // progress remain authoritative while the independent audio job is running.
+  const progress = clampProgress(task?.progress ?? model?.overallProgress)
+  const failed = task?.status === 'failed'
+  const completed = task?.status === 'completed'
+  const visualProgress = clampProgress(task?.visual_progress ?? progress)
+  const audioProgress = clampProgress(task?.audio_progress ?? (completed ? 100 : 0))
+  const visualStatus = task?.visual_status || (completed ? 'completed' : task?.status || 'pending')
+  const audioStatus = task?.audio_status || (completed ? 'completed' : 'pending')
   const currentStageIndex = STAGES.indexOf(model?.stage)
   const candidates = frame?.candidates || []
   const previewLagging = Boolean(
@@ -162,7 +178,9 @@ export default function ProcessingPanel({
     )
   }
 
-  const status = completed ? 'completed' : connection.status
+  const status = completed
+    ? 'completed'
+    : (model?.terminal && task?.status === 'processing' ? 'live' : connection.status)
   const connectionLabel = CONNECTION_LABELS[status] || CONNECTION_LABELS.idle
 
   return (
@@ -193,6 +211,43 @@ export default function ProcessingPanel({
             aria-valuenow={progress}
           ><span style={{ width: `${progress}%` }} /></div>
         </div>
+
+        <section className="source-job-progress" aria-label="双轨提取进度">
+          <article className={`source-job-card is-${visualStatus}`}>
+            <div>
+              <span>Visual Subtitle Extraction</span>
+              <strong>PaddleOCR 视觉字幕</strong>
+              <small>{SOURCE_STATUS_LABELS[visualStatus] || visualStatus}</small>
+            </div>
+            <b>{visualProgress}%</b>
+            <div
+              className="progress-track"
+              role="progressbar"
+              aria-label="视觉字幕提取进度"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow={visualProgress}
+            ><span style={{ width: `${visualProgress}%` }} /></div>
+            {task?.visual_error && <p role="alert">{task.visual_error}</p>}
+          </article>
+          <article className={`source-job-card is-${audioStatus}`}>
+            <div>
+              <span>Audio Subtitle Extraction</span>
+              <strong>WhisperX 音频字幕</strong>
+              <small>{SOURCE_STATUS_LABELS[audioStatus] || audioStatus}</small>
+            </div>
+            <b>{audioProgress}%</b>
+            <div
+              className="progress-track"
+              role="progressbar"
+              aria-label="音频字幕提取进度"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow={audioProgress}
+            ><span style={{ width: `${audioProgress}%` }} /></div>
+            {task?.audio_error && <p role="alert">{task.audio_error}</p>}
+          </article>
+        </section>
 
         <div className="analysis-progress-grid">
           <section className="analysis-frame-panel" aria-labelledby="analysis-frame-title">

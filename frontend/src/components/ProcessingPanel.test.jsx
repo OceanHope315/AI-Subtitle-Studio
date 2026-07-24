@@ -60,10 +60,10 @@ function analysis(progress = makeProgress(), connection = { status: 'live', atte
   return { progress, connection, retry: vi.fn(), snapshotRestored: false }
 }
 
-function renderPanel(progress = makeProgress(), connection) {
+function renderPanel(progress = makeProgress(), connection, taskOverrides = {}) {
   return render(
     <ProcessingPanel
-      task={{ taskId: 'task-one', status: 'processing', filename: 'lesson.mp4', progress: 1 }}
+      task={{ taskId: 'task-one', status: 'processing', filename: 'lesson.mp4', progress: 1, ...taskOverrides }}
       loading={false}
       pollingError={null}
       analysis={analysis(progress, connection)}
@@ -93,7 +93,7 @@ describe('ProcessingPanel real analysis UI', () => {
     vi.stubGlobal('Image', SelectiveImage)
     renderPanel()
 
-    expect(screen.getByRole('progressbar', { name: '总体分析进度' })).toHaveAttribute('aria-valuenow', '38')
+    expect(screen.getByRole('progressbar', { name: '总体分析进度' })).toHaveAttribute('aria-valuenow', '1')
     expect(screen.getByRole('progressbar', { name: '当前阶段进度' })).toHaveAttribute('aria-valuenow', '25')
     expect(screen.getByRole('status')).toHaveTextContent('实时分析中')
     expect(screen.getAllByText('PaddleOCR 抽帧识别')).toHaveLength(2)
@@ -112,6 +112,40 @@ describe('ProcessingPanel real analysis UI', () => {
       `${API_BASE_URL}/tasks/task-one/previews/roi-good?run_id=run-one`,
     )
     expect(screen.getAllByTestId('analysis-ocr-box')).toHaveLength(1)
+  })
+
+  it('shows visual and audio job progress independently while keeping visual SSE details', () => {
+    renderPanel(makeProgress(), undefined, {
+      visual_progress: 72,
+      audio_progress: 31,
+      visual_status: 'processing',
+      audio_status: 'queued',
+    })
+
+    expect(screen.getByRole('progressbar', { name: '视觉字幕提取进度' })).toHaveAttribute('aria-valuenow', '72')
+    expect(screen.getByRole('progressbar', { name: '音频字幕提取进度' })).toHaveAttribute('aria-valuenow', '31')
+    expect(screen.getByText('WhisperX 音频字幕')).toBeInTheDocument()
+    expect(screen.getByText('PaddleOCR 视觉字幕')).toBeInTheDocument()
+    expect(screen.getByText('正在识别采样帧')).toBeInTheDocument()
+  })
+
+  it('keeps processing when the visual SSE fails but the independent audio job is still running', () => {
+    renderPanel(makeProgress({}, {
+      terminal: 'failed',
+      failureMessage: 'visual failed',
+    }), undefined, {
+      status: 'processing',
+      progress: 55,
+      visual_progress: 10,
+      audio_progress: 65,
+      visual_status: 'failed',
+      audio_status: 'processing',
+      visual_error: 'visual failed',
+    })
+
+    expect(screen.queryByText('视频分析失败')).not.toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: '总体分析进度' })).toHaveAttribute('aria-valuenow', '55')
+    expect(screen.getByText('WhisperX 音频字幕')).toBeInTheDocument()
   })
 
   it('keeps the previous image when a new preview fails to preload', async () => {

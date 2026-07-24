@@ -3,7 +3,8 @@
 
 AI Subtitle Studio 是一个完整可运行的 AI 视频字幕辅助制作平台。它以 PaddleOCR
 检测画面硬字幕，用 faster-whisper 在视觉事件内受限校字，通过网页完成 ROI 框选、
-任务恢复、校对、逐帧时间轴检查、自动保存与 SRT 导出。
+任务恢复、校对、逐帧时间轴检查、自动保存与 SRT 导出；同时以独立 WhisperX job
+生成句级音频字幕和词级时间戳，由用户选择视觉轨或音频轨进入最终字幕。
 
 本项目是从旧 Tkinter 原型重新设计的新工程；旧目录 `D:\new project` 未被修改。
 详细审查见 [旧项目代码审查报告](docs/OLD_PROJECT_REVIEW.md)。
@@ -15,12 +16,14 @@ AI Subtitle Studio 是一个完整可运行的 AI 视频字幕辅助制作平台
 3. Express 校验并持久化归一化 ROI，原子地将任务入队并提交 AI 服务。
 4. FastAPI 只裁剪用户框选区域，粗抽帧发现视觉字幕并保留全部 OCR 候选。
 5. 视觉变化扫描定位边界，再以固定 OCR 预算精修到接近源视频单帧。
-6. OCR 决定字幕条数和时间轴；faster-whisper 只能在当前视觉事件内受限校字。
-7. 处理中页面通过 SSE 展示真实分析帧、ROI、PaddleOCR 候选、容器 PTS、阶段和字幕计数；
+6. OCR 决定视觉轨条数和时间轴；faster-whisper 只能在当前视觉事件内受限校字。
+7. WhisperX 音频任务与视觉任务并行运行，保留句级字幕和 `words[]` 词级时间戳；两轨
+   不自动融合、不强制对齐。
+8. 处理中页面通过 SSE 展示真实分析帧、ROI、PaddleOCR 候选、容器 PTS、阶段和字幕计数；
    刷新或断线后按 `run_id + seq` 恢复。
-8. `/tasks` 任务中心可恢复全部状态；Logo、新建、刷新和浏览器前进/后退都由正式路由管理。
-9. 播放器用呈现帧 `mediaTime` 切换预览字幕，并支持逐帧前后移动和全片/5 秒/1 秒时间轴。
-10. 字幕修改 750ms 防抖自动保存；失败时按 taskId 写 IndexedDB，revision 冲突返回 409。
+9. 工作台以双栏只读展示视觉/音频来源；Use Visual / Use Audio 只复制所选轨到独立 Final。
+10. `/tasks` 任务中心可恢复全部状态；播放器与最终时间轴支持逐帧检查。
+11. 最终字幕修改 750ms 防抖自动保存；失败时按 taskId 写 IndexedDB，revision 冲突返回 409。
 
 ## 架构
 
@@ -28,11 +31,12 @@ AI Subtitle Studio 是一个完整可运行的 AI 视频字幕辅助制作平台
 React + Vite :5173
         │ REST / Range / SSE / JPEG
 Express :3001 ───── MongoDB（推荐）/ JSON 文件降级
-        │ 异步 job + polling / progress replay
+        │ visual + audio 独立 job / polling / progress replay
 FastAPI :8000
         ├── PyAV PTS 视频读取与抽帧
         ├── PaddleOCR 硬字幕检测
         ├── faster-whisper 文本校验与断句
+        ├── WhisperX 独立音频轨与词级对齐
         └── JSONL 事件 + 限频 JPEG 预览
 ```
 
@@ -73,6 +77,7 @@ AI-Subtitle-Studio/
 │   ├── video/                  PyAV PTS 读取、抽帧和边界映射
 │   ├── ocr/                    PaddleOCR 2.x/3.x 适配器
 │   ├── whisper/                faster-whisper 适配器
+│   ├── whisperx/               WhisperX 独立音频轨适配器
 │   ├── alignment/              OCR 时序聚合与 OCR/ASR 融合
 │   ├── subtitle/               JSON、SRT 与字幕指标
 │   ├── evaluation/             视觉时间轴真值评估器
@@ -82,6 +87,7 @@ AI-Subtitle-Studio/
 │   ├── subtitles/              OCR、JSON 与 SRT 产物
 │   ├── ground_truth/            人工逐帧视觉字幕真值
 │   ├── jobs/                   AI job 快照
+│   ├── audio_jobs/             WhisperX job 快照
 │   └── progress/               运行事件、临时预览与边界 evidence
 ├── docs/                       审查、架构、测试与实施记录
 ├── scripts/                    安装与样例评测脚本
@@ -106,11 +112,19 @@ AI-Subtitle-Studio/
 .\scripts\setup.ps1
 ```
 
+安装脚本默认安装可独立工作的 OCR 基础环境。启用 WhisperX 词级时间戳还需安装与本机
+Torch/CUDA 组合匹配的可选依赖：
+
+```powershell
+cd D:\AI-Subtitle-Studio\ai_service
+python -m pip install -r requirements-whisperx.txt
+```
+
 也可以分别安装：
 
 ```powershell
 cd D:\AI-Subtitle-Studio\ai_service
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-whisperx.txt
 
 cd D:\AI-Subtitle-Studio\backend
 npm install

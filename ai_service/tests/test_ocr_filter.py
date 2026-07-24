@@ -1,5 +1,24 @@
+import sys
+
 from ai_service.ocr.base import DetectedText
-from ai_service.ocr.paddle_engine import PaddleOCREngine, _polygon_to_box
+from ai_service.ocr.paddle_engine import (
+    PaddleOCREngine,
+    _polygon_to_box,
+    _prevent_modelscope_torch_import,
+)
+
+
+def test_modelscope_logger_uses_non_torch_process_shim(monkeypatch) -> None:
+    module_name = "modelscope.utils.torch_utils"
+    monkeypatch.delitem(sys.modules, module_name, raising=False)
+    torch_was_loaded = "torch" in sys.modules
+
+    _prevent_modelscope_torch_import()
+
+    shim = sys.modules[module_name]
+    assert shim.is_dist() is False
+    assert shim.is_master() is True
+    assert ("torch" in sys.modules) is torch_was_loaded
 
 
 def test_hud_time_and_peripheral_labels_are_rejected() -> None:

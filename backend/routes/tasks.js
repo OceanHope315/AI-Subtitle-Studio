@@ -213,6 +213,16 @@ export function createTasksRouter({
             mimetype: "video/mp4",
           },
           subtitles: [],
+          visualSubtitles: [],
+          audioSubtitles: [],
+          visualStatus: "pending",
+          audioStatus: "pending",
+          visualProgress: 0,
+          audioProgress: 0,
+          visualError: null,
+          audioError: null,
+          visualJobId: null,
+          audioJobId: null,
           revision: 0,
           archivedAt: null,
           error: null,
@@ -510,6 +520,22 @@ export function createTasksRouter({
         tasks: result.tasks.map(taskToSummaryDto),
         pagination: { page, limit, total: result.total, pages: Math.ceil(result.total / limit) },
       });
+    }),
+  );
+
+  router.get(
+    "/:id/visual-subtitles",
+    asyncHandler(async (req, res) => {
+      const task = await findTaskOrThrow(store, req.params.id);
+      res.json({ visual_subtitles: task.visualSubtitles || [] });
+    }),
+  );
+
+  router.get(
+    "/:id/audio-subtitles",
+    asyncHandler(async (req, res) => {
+      const task = await findTaskOrThrow(store, req.params.id);
+      res.json({ audio_subtitles: task.audioSubtitles || [] });
     }),
   );
 

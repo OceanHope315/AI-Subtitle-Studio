@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { getVideoUrl } from '../api/tasks'
+import SourceSubtitleTracks from '../components/SourceSubtitleTracks'
 import SubtitleEditor from '../components/SubtitleEditor'
 import Timeline from '../components/Timeline'
 import VideoPanel from '../components/VideoPanel'
@@ -10,10 +11,20 @@ export default function EditorPage({
   subtitles,
   subtitlesLoading,
   subtitlesError,
+  visualSubtitles = [],
+  visualSubtitlesLoading = false,
+  visualSubtitlesError = null,
+  audioSubtitles = [],
+  audioSubtitlesLoading = false,
+  audioSubtitlesError = null,
   onSubtitleChange,
   onSubtitleDelete,
   onSubtitleAdd,
   onRetrySubtitles,
+  onRetryVisualSubtitles,
+  onRetryAudioSubtitles,
+  onUseVisual,
+  onUseAudio,
   onVideoError,
 }) {
   const videoRef = useRef(null)
@@ -70,17 +81,31 @@ export default function EditorPage({
           onDurationChange={setDuration}
           onError={onVideoError}
         />
-        <Timeline
-          ref={timelineRef}
-          subtitles={subtitles}
-          duration={duration}
-          initialTime={0}
-          frameRate={frameRate}
-          selectedId={selectedId}
-          onSeek={seek}
-          onSelect={setSelectedId}
-        />
       </div>
+      <SourceSubtitleTracks
+        visualSubtitles={visualSubtitles}
+        audioSubtitles={audioSubtitles}
+        visualLoading={visualSubtitlesLoading}
+        audioLoading={audioSubtitlesLoading}
+        visualError={visualSubtitlesError}
+        audioError={audioSubtitlesError}
+        actionsDisabled={subtitlesLoading || Boolean(subtitlesError)}
+        onRetryVisual={onRetryVisualSubtitles}
+        onRetryAudio={onRetryAudioSubtitles}
+        onUseVisual={onUseVisual}
+        onUseAudio={onUseAudio}
+        onSeek={seek}
+      />
+      <Timeline
+        ref={timelineRef}
+        subtitles={subtitles}
+        duration={duration}
+        initialTime={0}
+        frameRate={frameRate}
+        selectedId={selectedId}
+        onSeek={seek}
+        onSelect={setSelectedId}
+      />
       <SubtitleEditor
         subtitles={subtitles}
         currentSubtitleId={currentSubtitle?._clientId}

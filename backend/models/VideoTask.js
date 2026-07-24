@@ -1,4 +1,8 @@
 import mongoose from "mongoose";
+import { audioSubtitleSchema } from "./AudioSubtitle.js";
+import { visualSubtitleSchema } from "./VisualSubtitle.js";
+
+const sourceStatusValues = ["pending", "queued", "processing", "completed", "failed"];
 
 const subtitleSchema = new mongoose.Schema(
   {
@@ -46,6 +50,16 @@ export const videoTaskSchema = new mongoose.Schema(
     message: { type: String, default: null },
     metadata: { type: mongoose.Schema.Types.Mixed, default: {} },
     subtitles: { type: [subtitleSchema], default: [] },
+    visualSubtitles: { type: [visualSubtitleSchema], default: [] },
+    audioSubtitles: { type: [audioSubtitleSchema], default: [] },
+    visualStatus: { type: String, enum: sourceStatusValues, default: "pending", index: true },
+    audioStatus: { type: String, enum: sourceStatusValues, default: "pending", index: true },
+    visualProgress: { type: Number, min: 0, max: 100, default: 0 },
+    audioProgress: { type: Number, min: 0, max: 100, default: 0 },
+    visualError: { type: String, default: null },
+    audioError: { type: String, default: null },
+    visualJobId: { type: String, default: null },
+    audioJobId: { type: String, default: null },
     revision: { type: Number, min: 0, default: 0 },
     archivedAt: { type: Date, default: null, index: true },
     error: { type: String, default: null },

@@ -34,7 +34,7 @@ function SubtitleRow({
           {current ? <PlayIcon width="14" height="14" /> : String(index + 1).padStart(2, '0')}
         </button>
         {confidence !== null && Number.isFinite(confidence) && (
-          <span title="OCR 置信度">{Math.round(confidence * (confidence <= 1 ? 100 : 1))}%</span>
+          <span title="来源置信度">{Math.round(confidence * (confidence <= 1 ? 100 : 1))}%</span>
         )}
       </div>
 
@@ -102,7 +102,7 @@ export default function SubtitleEditor({
       <div className="panel-heading subtitle-panel-heading">
         <div>
           <span className="panel-icon"><CaptionsIcon /></span>
-          <div><h2>字幕校对</h2><p>{loading ? '正在读取字幕…' : `共 ${subtitles.length} 条字幕`}</p></div>
+          <div><h2>Final Subtitle Track</h2><p>{loading ? '正在读取最终字幕…' : `最终编辑结果 · 共 ${subtitles.length} 条字幕`}</p></div>
         </div>
         <button className="button button-secondary button-small" type="button" onClick={onAdd} disabled={loading || Boolean(error)}>
           <PlusIcon width="17" height="17" /> 添加字幕

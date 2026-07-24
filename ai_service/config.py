@@ -51,6 +51,15 @@ class Settings:
     whisper_model: str = os.getenv("WHISPER_MODEL", "small")
     whisper_device: str = os.getenv("WHISPER_DEVICE", "cpu")
     whisper_compute_type: str = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
+    enable_whisperx: bool = _as_bool(os.getenv("ENABLE_WHISPERX"), True)
+    whisperx_model: str = os.getenv("WHISPERX_MODEL", "small")
+    whisperx_device: str = os.getenv("WHISPERX_DEVICE", "cpu")
+    whisperx_compute_type: str = os.getenv("WHISPERX_COMPUTE_TYPE", "int8")
+    whisperx_batch_size: int = int(os.getenv("WHISPERX_BATCH_SIZE", "8"))
+    whisperx_language: str | None = os.getenv("WHISPERX_LANGUAGE") or None
+    whisperx_worker_timeout_seconds: float = float(
+        os.getenv("WHISPERX_WORKER_TIMEOUT_SECONDS", "3600")
+    )
     max_upload_mb: int = int(os.getenv("MAX_UPLOAD_MB", "2048"))
     preview_interval_seconds: float = float(os.getenv("PREVIEW_INTERVAL_SECONDS", "1.0"))
     preview_ring_size: int = int(os.getenv("PREVIEW_RING_SIZE", "8"))
@@ -73,6 +82,14 @@ class Settings:
         return self.data_dir / "jobs"
 
     @property
+    def audio_jobs_dir(self) -> Path:
+        return self.data_dir / "audio_jobs"
+
+    @property
+    def audio_inputs_dir(self) -> Path:
+        return self.data_dir / "audio_inputs"
+
+    @property
     def progress_dir(self) -> Path:
         return self.data_dir / "progress"
 
@@ -81,6 +98,8 @@ class Settings:
             self.videos_dir,
             self.subtitles_dir,
             self.jobs_dir,
+            self.audio_jobs_dir,
+            self.audio_inputs_dir,
             self.progress_dir,
         ):
             directory.mkdir(parents=True, exist_ok=True)

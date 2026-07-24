@@ -41,7 +41,7 @@ export class AiClient {
     });
   }
 
-  async createJob(task) {
+  createVideoForm(task, taskId, { includeRoi = false } = {}) {
     const form = new FormData();
     const fileOptions = {
       filename: task.filename,
@@ -49,13 +49,18 @@ export class AiClient {
     };
     if (Number.isFinite(task.metadata?.size)) fileOptions.knownLength = task.metadata.size;
     form.append("video", fs.createReadStream(task.videoPath), fileOptions);
-    form.append("task_id", task.id);
-    if (task.roi) {
+    form.append("task_id", taskId);
+    if (includeRoi && task.roi) {
       form.append("roi_x", String(task.roi.x));
       form.append("roi_y", String(task.roi.y));
       form.append("roi_width", String(task.roi.width));
       form.append("roi_height", String(task.roi.height));
     }
+    return form;
+  }
+
+  async createVisualJob(task) {
+    const form = this.createVideoForm(task, task.id, { includeRoi: true });
     try {
       const response = await this.http.post("/jobs", form, {
         headers: form.getHeaders(),
@@ -67,6 +72,26 @@ export class AiClient {
       // recover the already-created job instead of incorrectly failing it.
       if (axios.isAxiosError(error) && error.response?.status === 409) {
         return this.getJob(task.id);
+      }
+      throw error;
+    }
+  }
+
+  async createJob(task) {
+    return this.createVisualJob(task);
+  }
+
+  async createAudioJob(task) {
+    const audioJobId = `${task.id}-audio`;
+    const form = this.createVideoForm(task, audioJobId);
+    try {
+      const response = await this.http.post("/audio-jobs", form, {
+        headers: form.getHeaders(),
+      });
+      return unwrapJobResponse(response.data);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 409) {
+        return this.getAudioJob(audioJobId);
       }
       throw error;
     }
@@ -87,8 +112,17 @@ export class AiClient {
     return response.data;
   }
 
-  async getJob(jobId) {
+  async getVisualJob(jobId) {
     const response = await this.http.get(`/jobs/${encodeURIComponent(jobId)}`);
+    return unwrapJobResponse(response.data);
+  }
+
+  async getJob(jobId) {
+    return this.getVisualJob(jobId);
+  }
+
+  async getAudioJob(jobId) {
+    const response = await this.http.get(`/audio-jobs/${encodeURIComponent(jobId)}`);
     return unwrapJobResponse(response.data);
   }
 

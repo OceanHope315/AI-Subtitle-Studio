@@ -1,0 +1,6 @@
+-r requirements.txt
+
+# Optional audio-track dependency. Keeping it separate lets FastAPI and the
+# PaddleOCR visual track run on Windows/Python combinations unsupported by
+# WhisperX or their matching Torch/Torchaudio wheels.
+whisperx>=3.3,<4

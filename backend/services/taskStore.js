@@ -89,7 +89,16 @@ export class FileTaskStore {
         .localeCompare(String(left.updatedAt || left.createdAt)));
     const offset = (page - 1) * limit;
     return {
-      tasks: matching.slice(offset, offset + limit).map(clone),
+      tasks: matching.slice(offset, offset + limit).map((task) => {
+        const summary = clone(task);
+        summary.subtitleCount = summary.subtitles?.length || 0;
+        summary.visualSubtitleCount = summary.visualSubtitles?.length || 0;
+        summary.audioSubtitleCount = summary.audioSubtitles?.length || 0;
+        delete summary.subtitles;
+        delete summary.visualSubtitles;
+        delete summary.audioSubtitles;
+        return summary;
+      }),
       total: matching.length,
     };
   }
@@ -177,6 +186,17 @@ export class FileTaskStore {
         progress: 0,
         message: "Waiting for AI processing",
         error: null,
+        visualSubtitles: [],
+        audioSubtitles: [],
+        visualStatus: "queued",
+        audioStatus: "queued",
+        visualProgress: 0,
+        audioProgress: 0,
+        visualError: null,
+        audioError: null,
+        visualJobId: null,
+        audioJobId: null,
+        aiJobId: null,
         progressSnapshot: null,
         updatedAt: new Date().toISOString(),
       });
@@ -255,8 +275,14 @@ export class MongooseTaskStore {
           tasks: [
             { $skip: (page - 1) * limit },
             { $limit: limit },
-            { $set: { subtitleCount: { $size: { $ifNull: ["$subtitles", []] } } } },
-            { $unset: "subtitles" },
+            {
+              $set: {
+                subtitleCount: { $size: { $ifNull: ["$subtitles", []] } },
+                visualSubtitleCount: { $size: { $ifNull: ["$visualSubtitles", []] } },
+                audioSubtitleCount: { $size: { $ifNull: ["$audioSubtitles", []] } },
+              },
+            },
+            { $unset: ["subtitles", "visualSubtitles", "audioSubtitles"] },
           ],
           count: [{ $count: "total" }],
         },
@@ -323,6 +349,17 @@ export class MongooseTaskStore {
           progress: 0,
           message: "Waiting for AI processing",
           error: null,
+          visualSubtitles: [],
+          audioSubtitles: [],
+          visualStatus: "queued",
+          audioStatus: "queued",
+          visualProgress: 0,
+          audioProgress: 0,
+          visualError: null,
+          audioError: null,
+          visualJobId: null,
+          audioJobId: null,
+          aiJobId: null,
           progressSnapshot: null,
           updatedAt: new Date(),
         },

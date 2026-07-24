@@ -1,7 +1,8 @@
 # AI Subtitle Studio AI Service
 
 FastAPI 服务负责 PyAV PTS 视频读取、PaddleOCR 硬字幕检测、faster-whisper 辅助、时序
-融合以及 JSON/SRT 产物生成。
+融合以及 JSON/SRT 产物生成。WhisperX 作为可选、独立的音频字幕轨运行，不参与 OCR
+融合，也不会改变视觉字幕的时间和文本。
 
 ## 启动
 
@@ -11,7 +12,53 @@ copy .env.example .env
 python main.py
 ```
 
+需要 WhisperX 词级时间戳时，再安装与本机 Torch/CUDA 组合匹配的可选依赖：
+
+```powershell
+python -m pip install -r requirements-whisperx.txt
+```
+
+WhisperX 或 Torchaudio 在当前 Windows/Python 环境不可导入时，服务仍可启动并执行 OCR；
+只有对应的 audio job 会进入 `failed`，错误可从该 job 单独读取。
+
 默认地址为 `http://127.0.0.1:8000`，OpenAPI 文档为 `/docs`。
+
+## 进程隔离架构
+
+为解决 PaddleOCR (cuDNN 9.5.1) 与 WhisperX (cuDNN 9.10.2) 在同一进程中的 GPU 内存/DLL
+冲突，WhisperX 音频任务通过 **独立 subprocess** 执行，从进程层面隔离 PyTorch、CUDA
+和 cuDNN：
+
+- **主 FastAPI 进程**：运行 PaddleOCR 视觉字幕轨，不导入 torch、whisperx 等 GPU 依赖
+- **WhisperX worker 子进程**：独立运行 WhisperX 推理、GPU 内存管理和 cuDNN 库加载
+
+Windows 下 PaddleX 会通过 ModelScope 的日志初始化间接导入 torch，即使当前模型来自本地
+缓存或 Hugging Face。OCR 适配器会为这条非分布式日志路径提供轻量 shim，并在导入
+Paddle 前注册/预加载 Paddle wheel 自带的 NVIDIA DLL 目录，避免 PyTorch cuDNN 回流到
+主进程以及 `cudnn_*64_9.dll` 的 `WinError 127`。该处理不改变 ModelScope 下载接口，也
+不会把 PaddleOCR 降级到 CPU。
+
+架构流程：
+
+1. 用户调用 `POST /audio-jobs` 上传音视频文件
+2. 主进程创建 audio job 并启动 worker subprocess：
+   ```
+   python -m ai_service.whisperx.worker --request request.json --output output.json
+   ```
+3. Worker 进程内部导入 torch、whisperx 等，执行完整推理
+4. Worker 通过 JSON 文件返回结果：成功时返回字幕列表，失败时返回结构化错误
+5. 主进程从 JSON 解析结果并更新 audio job 状态
+
+关键文件：
+
+- `ai_service/whisperx/adapter.py`：第三方 WhisperX 导入和转写逻辑（worker 专用）
+- `ai_service/whisperx/worker.py`：独立 worker 进程入口，支持模块运行方式
+- `ai_service/whisperx/runner.py`：主进程调用器，负责 subprocess 管理、超时控制和结果解析
+
+配置：
+
+- `WHISPERX_WORKER_TIMEOUT_SECONDS`（默认 3600）：worker 进程超时时间
+- 其他配置 (`WHISPERX_DEVICE`、`WHISPERX_COMPUTE_TYPE` 等) 通过 request.json 传入 worker
 
 ## API
 
@@ -26,14 +73,26 @@ python main.py
 - `GET /jobs/:task_id/previews/:preview_id?run_id=...`：读取受控目录内的 JPEG
   原帧或 ROI 预览；task、run 和不可预测的 32 位十六进制 preview ID 都会校验。
 - `GET /jobs/:task_id/subtitles`：字幕 JSON。
+- `GET /jobs/:task_id/visual-subtitles`：未经 WhisperX 融合的纯 PaddleOCR 视觉字幕轨，
+  字段为 `text`、`start`、`end`、`bbox`、`confidence`。
+- `POST /audio-jobs`：创建独立 WhisperX 任务。multipart 字段为 `video`，可选
+  `task_id`、`language`；支持 MP4、M4A、MP3、WAV、FLAC、OGG 和 WebM。
+- `GET /audio-jobs/:task_id`：独立音频任务状态、`progress`、`error` 和
+  `audio_subtitles`。
+- `GET /audio-jobs/:task_id/subtitles`：句级音频字幕及 `words[]` 词级时间戳。
 - `GET /jobs/:task_id/artifacts/ocr_events.json`
 - `GET /jobs/:task_id/artifacts/subtitle.json`
 - `GET /jobs/:task_id/artifacts/output.srt`
 - `GET /jobs/:task_id/artifacts/diagnostics.json`：ROI、采样率、精修 OCR 预算/调用数及
   最终视觉事件帧边界与置信度。
 
-任务状态为 `queued`、`processing`、`completed` 或 `failed`。AI worker 默认为 1，避免
-CPU 环境并行加载多份 Paddle/Whisper 模型。
+任务状态为 `queued`、`processing`、`completed` 或 `failed`。视觉 worker 与音频 worker
+各自默认为 1；两条轨道使用独立 executor 和 JobStore，同一条轨道内部仍避免并行加载
+多份大模型。WhisperX worker 不获取 PaddleOCR 的全局锁。
+
+WhisperX 配置为 `ENABLE_WHISPERX`、`WHISPERX_MODEL`、`WHISPERX_DEVICE`、
+`WHISPERX_COMPUTE_TYPE`、`WHISPERX_BATCH_SIZE` 和可留空自动检测的
+`WHISPERX_LANGUAGE`。音频结果不会自动写入最终 SRT；最终轨仍由用户选择或编辑后导出。
 
 ## 可视化进度协议
 
@@ -115,7 +174,7 @@ YOLO 不是严格时间轴的必要依赖：手动 ROI 先限定字幕带，Padd
 python -m pytest tests -q
 ```
 
-当前自动化结果为 80/80 通过。
+当前自动化结果为 110/110 通过。
 
 PaddleOCR 3.x 在部分 Windows CPU 上默认 oneDNN/PIR 路径会失败；适配器在导入 Paddle
 之前设置兼容标志，并显式使用 mobile detection/recognition 模型与 `enable_mkldnn=False`。

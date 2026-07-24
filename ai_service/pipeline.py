@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import inspect
 import math
 from pathlib import Path
@@ -21,7 +21,7 @@ from ai_service.alignment.temporal import (
 from ai_service.config import Settings
 from ai_service.ocr import OCREngine, PaddleOCREngine, compose_line_candidates
 from ai_service.progress import ProgressPublisher
-from ai_service.schemas import NormalizedROI, SubtitleItem, VideoMetadata
+from ai_service.schemas import NormalizedROI, SubtitleItem, VideoMetadata, VisualSubtitle
 from ai_service.subtitle.srt import write_json_artifact, write_srt, write_subtitle_json
 from ai_service.video import SampledFrame, VideoReader
 from ai_service.whisper import FasterWhisperEngine
@@ -38,6 +38,7 @@ class PipelineResult:
     whisper_segment_count: int
     artifacts: dict[str, str]
     warnings: list[str]
+    visual_subtitles: list[VisualSubtitle] = field(default_factory=list)
 
 
 class SubtitlePipeline:
@@ -679,6 +680,9 @@ class SubtitlePipeline:
                 "diagnostics_json": str(diagnostics_path),
             },
             warnings=warnings,
+            visual_subtitles=[
+                VisualSubtitle.from_subtitle_item(item) for item in ocr_events
+            ],
         )
 
     def _detect_frame(self, frame, *, apply_layout_filter: bool):

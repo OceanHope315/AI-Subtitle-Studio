@@ -61,6 +61,12 @@ test("file store atomically starts an awaiting task only once and persists its R
   assert.equal(started.status, "queued");
   assert.deepEqual(started.roi, roi);
   assert.equal(started.error, null);
+  assert.equal(started.visualStatus, "queued");
+  assert.equal(started.audioStatus, "queued");
+  assert.equal(started.visualProgress, 0);
+  assert.equal(started.audioProgress, 0);
+  assert.deepEqual(started.visualSubtitles, []);
+  assert.deepEqual(started.audioSubtitles, []);
   await store.close();
 
   const reopened = await new FileTaskStore(storePath).initialize();

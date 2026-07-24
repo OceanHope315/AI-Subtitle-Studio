@@ -114,6 +114,56 @@ describe("tasks API", () => {
     assert.match(srt, /Today I will teach you/);
   });
 
+  test("returns visual and audio source tracks separately and exposes dual progress URLs", async () => {
+    const created = await request(app)
+      .post("/api/tasks")
+      .attach("video", mp4Fixture(), { filename: "dual.mp4", contentType: "video/mp4" })
+      .expect(201);
+    const taskId = created.body.id;
+    await store.update(taskId, {
+      visualStatus: "completed",
+      audioStatus: "processing",
+      visualProgress: 100,
+      audioProgress: 42,
+      visualSubtitles: [{
+        taskId,
+        text: "WATCH OUT",
+        start: 21.1,
+        end: 21.4,
+        bbox: [1, 2, 3, 4],
+        confidence: 0.95,
+      }],
+      audioSubtitles: [{
+        taskId,
+        text: "watch out",
+        start: 21.05,
+        end: 21.4,
+        words: [{ word: "watch", start: 21.05, end: 21.25, confidence: 0.9 }],
+        confidence: 0.9,
+      }],
+    });
+
+    const visual = await request(app)
+      .get(`/api/tasks/${taskId}/visual-subtitles`)
+      .expect(200);
+    const audio = await request(app)
+      .get(`/api/tasks/${taskId}/audio-subtitles`)
+      .expect(200);
+    assert.equal(visual.body.visual_subtitles[0].text, "WATCH OUT");
+    assert.equal(audio.body.audio_subtitles[0].words[0].word, "watch");
+
+    const detail = await request(app).get(`/api/tasks/${taskId}`).expect(200);
+    assert.equal(detail.body.visual_status, "completed");
+    assert.equal(detail.body.audio_status, "processing");
+    assert.equal(detail.body.visual_progress, 100);
+    assert.equal(detail.body.audio_progress, 42);
+    assert.equal(detail.body.visual_subtitle_count, 1);
+    assert.equal(detail.body.audio_subtitle_count, 1);
+    assert.equal(detail.body.visual_subtitles_url, `/api/tasks/${taskId}/visual-subtitles`);
+    assert.equal(detail.body.audio_subtitles_url, `/api/tasks/${taskId}/audio-subtitles`);
+    assert.deepEqual(detail.body.subtitles, [], "source tracks must not become the FinalSubtitle track");
+  });
+
   test("starts an awaiting task with a normalized ROI and enqueues it exactly once", async () => {
     const created = await request(app)
       .post("/api/tasks")

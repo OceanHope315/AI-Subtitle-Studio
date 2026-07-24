@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   API_BASE_URL,
   estimateTaskRoi,
+  getAudioSubtitles,
   getTaskPreviewUrl,
+  getVisualSubtitles,
   listTasks,
   saveSubtitles,
   startTaskRecognition,
@@ -71,6 +73,36 @@ describe('task summaries and revisions', () => {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'If-Match': '"7"' },
     }))
+  })
+})
+
+describe('independent subtitle sources', () => {
+  it('loads visual and audio tracks from separate encoded task endpoints', async () => {
+    const visual = [{ taskId: 'task/one', text: 'WATCH OUT', start: 1, end: 2, bbox: [] }]
+    const audio = [{ taskId: 'task/one', text: 'watch out', words: [] }]
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({ visual_subtitles: visual }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ))
+      .mockResolvedValueOnce(new Response(
+        JSON.stringify({ audio_subtitles: audio }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(getVisualSubtitles('task/one')).resolves.toEqual(visual)
+    await expect(getAudioSubtitles('task/one')).resolves.toEqual(audio)
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      `${API_BASE_URL}/tasks/task%2Fone/visual-subtitles`,
+      { signal: undefined },
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      `${API_BASE_URL}/tasks/task%2Fone/audio-subtitles`,
+      { signal: undefined },
+    )
   })
 })
 

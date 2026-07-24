@@ -69,6 +69,35 @@ class FragmentAndBrandOCR:
         ]
 
 
+class NoisyCaptionOCR:
+    name = "noisy-caption"
+
+    def detect(
+        self, image, offset_y=0, offset_x=0, *, apply_layout_filter=True
+    ):
+        return [
+            DetectedText(
+                "WATCN OUT",
+                0.7,
+                (offset_x + 10, offset_y + 10, offset_x + 70, offset_y + 30),
+            )
+        ]
+
+
+class CorrectingWhisper:
+    def transcribe(self, _video_path, language=None):
+        return [
+            SubtitleItem(
+                id="speech",
+                text="watch out",
+                start_time=0,
+                end_time=1,
+                confidence=0.95,
+                source="whisper",
+            )
+        ]
+
+
 def test_pipeline_applies_explicit_roi_and_keeps_every_candidate(tmp_path: Path) -> None:
     path = tmp_path / "pipeline.mp4"
     writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), 10, (100, 100))
@@ -107,6 +136,38 @@ def test_pipeline_applies_explicit_roi_and_keeps_every_candidate(tmp_path: Path)
     assert diagnostics["final_ocr_event_count"] == 2
     assert all("start_frame" in event and "confidence" in event
                for event in diagnostics["events"])
+
+
+def test_visual_track_remains_raw_ocr_when_legacy_whisper_corrects_final_track(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "independent-tracks.mp4"
+    writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), 10, (100, 100))
+    for _ in range(10):
+        writer.write(np.zeros((100, 100, 3), dtype=np.uint8))
+    writer.release()
+
+    configured = Settings(
+        data_dir=tmp_path,
+        sample_fps=2,
+        enable_whisper=True,
+        refine_boundaries=False,
+        discover_short_events=False,
+    )
+    result = SubtitlePipeline(
+        configured,
+        ocr_engine=NoisyCaptionOCR(),
+        whisper_engine=CorrectingWhisper(),
+    ).process(
+        path,
+        tmp_path / "independent-output",
+        enable_whisper=True,
+        roi=NormalizedROI(x=0.1, y=0.5, width=0.8, height=0.3),
+    )
+
+    assert result.visual_subtitles[0].text == "WATCN OUT"
+    assert result.visual_subtitles[0].bbox is not None
+    assert result.subtitles[0].text == "watch out"
 
 
 def test_selective_refinement_is_frame_accurate_with_bounded_ocr_calls(

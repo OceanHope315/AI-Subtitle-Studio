@@ -236,6 +236,16 @@ export async function getSubtitles(taskId, signal) {
   return { subtitles: payload?.subtitles || [], revision: Number(payload?.revision) || 0 }
 }
 
+export async function getVisualSubtitles(taskId, signal) {
+  const payload = await request(taskPath(taskId, '/visual-subtitles'), { signal })
+  return Array.isArray(payload?.visual_subtitles) ? payload.visual_subtitles : []
+}
+
+export async function getAudioSubtitles(taskId, signal) {
+  const payload = await request(taskPath(taskId, '/audio-subtitles'), { signal })
+  return Array.isArray(payload?.audio_subtitles) ? payload.audio_subtitles : []
+}
+
 export async function saveSubtitles(taskId, subtitles, expectedRevision) {
   const payload = await request(taskPath(taskId, '/subtitles'), {
     method: 'PUT',

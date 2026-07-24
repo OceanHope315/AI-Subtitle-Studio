@@ -3,10 +3,11 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 JobStatus = Literal["queued", "processing", "completed", "failed"]
+JobKind = Literal["visual", "audio"]
 ProgressEventType = Literal[
     "stage.progress",
     "frame.analyzed",
@@ -65,6 +66,80 @@ class SubtitleItem(BaseModel):
         return self
 
 
+class VisualSubtitle(BaseModel):
+    """One OCR-derived visual cue kept separate from every audio source."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str
+    task_id: str | None = Field(default=None, serialization_alias="taskId")
+    text: str
+    start: float = Field(ge=0)
+    end: float = Field(gt=0)
+    bbox: list[int] | None = None
+    confidence: float = Field(default=0, ge=0, le=1)
+
+    @model_validator(mode="after")
+    def validate_visual_cue(self) -> "VisualSubtitle":
+        if self.end <= self.start:
+            raise ValueError("end must be greater than start")
+        if self.bbox is not None and len(self.bbox) != 4:
+            raise ValueError("bbox must contain [x1, y1, x2, y2]")
+        return self
+
+    @classmethod
+    def from_subtitle_item(
+        cls,
+        item: SubtitleItem,
+        *,
+        task_id: str | None = None,
+    ) -> "VisualSubtitle":
+        return cls(
+            id=item.id,
+            task_id=task_id,
+            text=item.text,
+            start=item.start_time,
+            end=item.end_time,
+            bbox=list(item.position) if item.position is not None else None,
+            confidence=item.confidence,
+        )
+
+
+class AudioWord(BaseModel):
+    """A WhisperX word. Missing alignment metadata is represented by ``None``."""
+
+    word: str
+    start: float | None = Field(default=None, ge=0)
+    end: float | None = Field(default=None, ge=0)
+    confidence: float | None = Field(default=None, ge=0, le=1)
+
+    @model_validator(mode="after")
+    def validate_word_times(self) -> "AudioWord":
+        if self.start is not None and self.end is not None and self.end < self.start:
+            raise ValueError("word end must not be before word start")
+        return self
+
+
+class AudioSubtitle(BaseModel):
+    """A sentence-level WhisperX cue with its independent word timeline."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str
+    task_id: str | None = Field(default=None, serialization_alias="taskId")
+    text: str
+    start: float = Field(ge=0)
+    end: float = Field(gt=0)
+    words: list[AudioWord] = Field(default_factory=list)
+    confidence: float = Field(default=0, ge=0, le=1)
+
+    @model_validator(mode="after")
+    def validate_audio_cue(self) -> "AudioSubtitle":
+        if self.end <= self.start:
+            raise ValueError("end must be greater than start")
+        return self
+
+
 class VideoMetadata(BaseModel):
     width: int
     height: int
@@ -101,6 +176,7 @@ class ProgressEvent(BaseModel):
 
 class JobRecord(BaseModel):
     task_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,80}$")
+    kind: JobKind = "visual"
     status: JobStatus = "queued"
     progress: int = Field(default=0, ge=0, le=100)
     message: str = "等待处理"
@@ -109,6 +185,8 @@ class JobRecord(BaseModel):
     roi: NormalizedROI | None = None
     metadata: VideoMetadata | None = None
     subtitles: list[SubtitleItem] = Field(default_factory=list)
+    visual_subtitles: list[VisualSubtitle] = Field(default_factory=list)
+    audio_subtitles: list[AudioSubtitle] = Field(default_factory=list)
     artifacts: dict[str, str] = Field(default_factory=dict)
     warnings: list[str] = Field(default_factory=list)
     error: str | None = None
@@ -133,5 +211,6 @@ class JobRecord(BaseModel):
     def public_dict(self) -> dict[str, Any]:
         return self.model_dump(
             mode="json",
+            by_alias=True,
             exclude={"recovery_pending", "completion_pending"},
         )

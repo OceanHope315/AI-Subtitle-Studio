@@ -28,6 +28,11 @@ from ai_service.pipeline import SubtitlePipeline
 from ai_service.progress import EventLogStore, PreviewStore, ProgressPublisher, new_run_id
 from ai_service.roi.estimator import estimate_video_roi
 from ai_service.schemas import JobRecord, NormalizedROI
+from ai_service.whisperx import (
+    WhisperXUnavailableError,
+    whisperx_installed,
+)
+from ai_service.whisperx.runner import run_whisperx_worker, WhisperXWorkerError
 
 
 logging.basicConfig(
@@ -38,6 +43,7 @@ logger = logging.getLogger("ai-subtitle-studio")
 
 settings.ensure_directories()
 job_store = JobStore(settings.jobs_dir)
+audio_job_store = JobStore(settings.audio_jobs_dir)
 event_store = EventLogStore(settings.progress_dir)
 preview_store = PreviewStore(
     settings.progress_dir,
@@ -168,16 +174,36 @@ def _recover_interrupted_jobs(
         events.release_hot_cache(record.task_id, record.run_id)
 
 
+def _recover_interrupted_audio_jobs(jobs: JobStore) -> None:
+    """Finish the lightweight restart transition for independent audio jobs."""
+
+    jobs.prepare_restart_recovery()
+    for record in jobs.take_interrupted_records():
+        try:
+            jobs.update(
+                record.task_id,
+                status="failed",
+                message="音频字幕任务已中断",
+                error=record.error or "AI 服务重启中断了 WhisperX 任务，请重试",
+                recovery_pending=False,
+                completion_pending=False,
+            )
+        except Exception:
+            logger.exception("Unable to recover audio job %s", record.task_id)
+
+
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
     # Keep import/pytest collection read-only with respect to existing jobs.
     # Recovery is an application-start operation, not a module-import action.
     job_store.prepare_restart_recovery()
     _recover_interrupted_jobs(job_store, event_store, preview_store)
+    _recover_interrupted_audio_jobs(audio_job_store)
     yield
 
 
 executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="subtitle-job")
+audio_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="audio-subtitle-job")
 ocr_work_lock = Lock()
 
 app = FastAPI(
@@ -203,6 +229,9 @@ def health() -> dict:
         "paddleocr_installed": bool(importlib.util.find_spec("paddleocr")),
         "paddlepaddle_installed": bool(importlib.util.find_spec("paddle")),
         "faster_whisper_installed": bool(importlib.util.find_spec("faster_whisper")),
+        "whisperx_installed": whisperx_installed(),
+        "torch_installed": bool(importlib.util.find_spec("torch")),
+        "torchaudio_installed": bool(importlib.util.find_spec("torchaudio")),
         "data_dir": str(settings.data_dir),
     }
 
@@ -374,6 +403,109 @@ def get_subtitles(task_id: str) -> dict:
     return {"task_id": task_id, "subtitles": [item.model_dump(mode="json") for item in record.subtitles]}
 
 
+@app.get("/jobs/{task_id}/visual-subtitles")
+def get_visual_subtitles(task_id: str) -> dict:
+    record = job_store.get(task_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    return {
+        "task_id": task_id,
+        "kind": "visual",
+        "subtitles": [
+            item.model_dump(mode="json", by_alias=True)
+            for item in record.visual_subtitles
+        ],
+    }
+
+
+@app.post("/audio-jobs", status_code=202)
+def create_audio_job(
+    video: UploadFile = File(...),
+    task_id: str | None = Form(default=None),
+    language: str | None = Form(default=None),
+) -> dict:
+    """Create a WhisperX-only job that is independent from visual OCR work."""
+
+    filename = Path(video.filename or "audio.mp4").name
+    suffix = Path(filename).suffix.lower()
+    if suffix not in {".mp4", ".m4a", ".mp3", ".wav", ".flac", ".ogg", ".webm"}:
+        raise HTTPException(status_code=415, detail="不支持的音视频格式")
+    safe_task_id = task_id or str(uuid.uuid4())
+    _validate_task_id(safe_task_id)
+    if audio_job_store.get(safe_task_id):
+        raise HTTPException(status_code=409, detail="audio task_id 已存在")
+    chosen_language = (language or settings.whisperx_language or "").strip() or None
+    if chosen_language and not re.fullmatch(r"[A-Za-z0-9_-]{2,12}", chosen_language):
+        raise HTTPException(status_code=422, detail="language 格式无效")
+
+    audio_directory = settings.audio_inputs_dir / safe_task_id
+    audio_directory.mkdir(parents=True, exist_ok=False)
+    audio_path = audio_directory / f"source{suffix}"
+    maximum = settings.max_upload_mb * 1024 * 1024
+    size = 0
+    try:
+        with audio_path.open("wb") as target:
+            while chunk := video.file.read(1024 * 1024):
+                size += len(chunk)
+                if size > maximum:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"文件超过 {settings.max_upload_mb} MB 限制",
+                    )
+                target.write(chunk)
+    except Exception:
+        audio_path.unlink(missing_ok=True)
+        audio_directory.rmdir()
+        raise
+    finally:
+        video.file.close()
+
+    run_id = new_run_id()
+    record = JobRecord(
+        task_id=safe_task_id,
+        kind="audio",
+        filename=filename,
+        video_path=str(audio_path),
+        status="queued",
+        progress=0,
+        message="音视频已接收，等待 WhisperX 处理",
+        run_id=run_id,
+    )
+    audio_job_store.create(record)
+    audio_executor.submit(
+        _run_audio_job,
+        safe_task_id,
+        audio_path,
+        chosen_language,
+    )
+    return record.public_dict()
+
+
+@app.get("/audio-jobs/{task_id}")
+def get_audio_job(task_id: str) -> dict:
+    _validate_task_id(task_id)
+    record = audio_job_store.get(task_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="音频字幕任务不存在")
+    return record.public_dict()
+
+
+@app.get("/audio-jobs/{task_id}/subtitles")
+def get_audio_subtitles(task_id: str) -> dict:
+    _validate_task_id(task_id)
+    record = audio_job_store.get(task_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="音频字幕任务不存在")
+    return {
+        "task_id": task_id,
+        "kind": "audio",
+        "subtitles": [
+            item.model_dump(mode="json", by_alias=True)
+            for item in record.audio_subtitles
+        ],
+    }
+
+
 @app.get("/jobs/{task_id}/events")
 def get_events(
     task_id: str,
@@ -456,6 +588,85 @@ def get_artifact(task_id: str, artifact_name: str):
     return FileResponse(path, media_type=media_type, filename=artifact_name)
 
 
+def _run_audio_job(
+    task_id: str,
+    audio_path: Path,
+    language: str | None,
+) -> None:
+    """Run WhisperX without sharing the visual worker or its OCR lock."""
+
+    try:
+        audio_job_store.update(
+            task_id,
+            status="processing",
+            progress=5,
+            message="启动 WhisperX worker",
+            error=None,
+        )
+        if not settings.enable_whisperx:
+            raise WhisperXUnavailableError("WhisperX 音频字幕轨已被配置禁用")
+
+        # Build model config dict for worker subprocess
+        model_config = {
+            "model": settings.whisperx_model,
+            "device": settings.whisperx_device,
+            "compute_type": settings.whisperx_compute_type,
+            "batch_size": settings.whisperx_batch_size,
+            "language": language,
+        }
+
+        audio_job_store.update(
+            task_id,
+            status="processing",
+            progress=10,
+            message="WhisperX worker 已启动，正在处理音频",
+            error=None,
+        )
+
+        # Run worker subprocess to avoid CUDA/cuDNN conflicts
+        try:
+            subtitles = run_whisperx_worker(
+                audio_path,
+                model_config,
+                timeout_seconds=settings.whisperx_worker_timeout_seconds,
+            )
+        except WhisperXWorkerError as exc:
+            logger.exception("WhisperX worker failed")
+            raise WhisperXUnavailableError(f"WhisperX 处理失败: {exc}") from exc
+
+        audio_job_store.update(
+            task_id,
+            status="processing",
+            progress=90,
+            message="推理和对齐完成，正在读取结果",
+            error=None,
+        )
+
+        task_subtitles = [
+            item.model_copy(update={"task_id": task_id}, deep=True)
+            for item in subtitles
+        ]
+        audio_job_store.update(
+            task_id,
+            status="completed",
+            progress=100,
+            message=f"WhisperX 处理完成，共生成 {len(task_subtitles)} 条音频字幕",
+            audio_subtitles=task_subtitles,
+            error=None,
+        )
+    except Exception as exc:
+        logger.exception("Audio task %s failed", task_id)
+        try:
+            audio_job_store.update(
+                task_id,
+                status="failed",
+                message="WhisperX 音频字幕处理失败",
+                error=str(exc),
+            )
+        except Exception:
+            logger.exception("Unable to finalize failed audio task %s", task_id)
+
+
 def _run_pipeline(
     task_id: str,
     video_path: Path,
@@ -523,6 +734,10 @@ def _run_pipeline(
             message="正在提交处理结果",
             metadata=result.metadata,
             subtitles=result.subtitles,
+            visual_subtitles=[
+                item.model_copy(update={"task_id": task_id}, deep=True)
+                for item in result.visual_subtitles
+            ],
             artifacts=result.artifacts,
             warnings=result.warnings,
             error=None,

@@ -34,8 +34,23 @@ test("AI client submits multipart video and polls the returned task", async (con
     assert.deepEqual(req.file.buffer, video);
     res.status(202).json({ task_id: req.body.task_id, status: "queued", progress: 0 });
   });
+  app.post("/audio-jobs", upload.single("video"), (req, res) => {
+    assert.equal(req.body.task_id, "00000000-0000-4000-8000-000000000002-audio");
+    assert.equal(req.body.roi_x, undefined);
+    assert.equal(req.file.originalname, "source.mp4");
+    assert.deepEqual(req.file.buffer, video);
+    res.status(202).json({ task_id: req.body.task_id, status: "queued", progress: 0 });
+  });
   app.get("/jobs/:id", (req, res) => {
     res.json({ task_id: req.params.id, status: "completed", progress: 100, subtitles: [] });
+  });
+  app.get("/audio-jobs/:id", (req, res) => {
+    res.json({
+      task_id: req.params.id,
+      status: "completed",
+      progress: 100,
+      audio_subtitles: [],
+    });
   });
   app.get("/jobs/:id/events", (req, res) => {
     assert.equal(req.params.id, "00000000-0000-4000-8000-000000000002");
@@ -78,6 +93,10 @@ test("AI client submits multipart video and polls the returned task", async (con
   assert.equal(submitted.status, "queued");
   const completed = await client.getJob(task.id);
   assert.equal(completed.status, "completed");
+  const submittedAudio = await client.createAudioJob(task);
+  assert.equal(submittedAudio.task_id, `${task.id}-audio`);
+  const completedAudio = await client.getAudioJob(`${task.id}-audio`);
+  assert.equal(completedAudio.status, "completed");
   const events = await client.getEvents(task.id, 12);
   assert.equal(events.run_id, "0123456789abcdef0123456789abcdef");
   assert.deepEqual(events.events, []);
