@@ -2,7 +2,7 @@
 AI Subtitle Studio - WhisperX GPU 进程隔离实现总结
 ==================================================
 
-项目：D:\AI-Subtitle-Studio
+项目：AI Subtitle Studio
 日期：2024年
 目标：解决 PaddleOCR GPU 与 WhisperX GPU 在同一 Python 进程中的 cuDNN DLL 冲突
 

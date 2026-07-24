@@ -1,6 +1,6 @@
 # 旧项目代码审查报告
 
-> 审查对象：`D:\new project`  
+> 审查对象：旧版 Tkinter 原型  
 > 审查方式：只读扫描源码、说明文档、依赖、测试资产、SRT、OCR/对齐日志与抽帧调试图；未修改旧项目任何文件。  
 > 审查日期：2026-07-15
 
@@ -38,7 +38,7 @@
 ### 2.2 目录树
 
 ```text
-D:\new project
+legacy-project/
 ├─ README.md / README_zh.md
 ├─ requirements.txt
 ├─ aligned_phrase_subtitles.srt       # OCR + 外部字幕对齐结果
