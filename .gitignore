@@ -22,6 +22,10 @@ data/videos/*
 !data/videos/.gitkeep
 data/jobs/*
 !data/jobs/.gitkeep
+data/audio_inputs/*
+!data/audio_inputs/.gitkeep
+data/audio_jobs/*
+!data/audio_jobs/.gitkeep
 data/progress/*
 !data/progress/.gitkeep
 data/e2e-logs/
@@ -30,6 +34,9 @@ data/subtitles/*/
 !data/subtitles/test-video/*.json
 !data/subtitles/test-video/*.srt
 *.log
+
+# Machine-local launcher
+/start.ps1
 
 # Editors / OS
 .DS_Store

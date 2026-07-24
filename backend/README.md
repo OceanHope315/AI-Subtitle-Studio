@@ -12,7 +12,7 @@ Express 后端负责视频上传、任务持久化、AI 服务编排、字幕编
 
 ```bash
 cd backend
-npm install
+npm ci
 copy .env.example .env
 npm run dev
 ```

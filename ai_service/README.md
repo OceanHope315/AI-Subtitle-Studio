@@ -7,15 +7,16 @@ FastAPI 服务负责 PyAV PTS 视频读取、PaddleOCR 硬字幕检测、faster-
 ## 启动
 
 ```powershell
-python -m pip install -r requirements.txt
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 copy .env.example .env
-python main.py
+.\.venv\Scripts\python.exe main.py
 ```
 
 需要 WhisperX 词级时间戳时，再安装与本机 Torch/CUDA 组合匹配的可选依赖：
 
 ```powershell
-python -m pip install -r requirements-whisperx.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements-whisperx.txt
 ```
 
 WhisperX 或 Torchaudio 在当前 Windows/Python 环境不可导入时，服务仍可启动并执行 OCR；
@@ -174,7 +175,7 @@ YOLO 不是严格时间轴的必要依赖：手动 ROI 先限定字幕带，Padd
 python -m pytest tests -q
 ```
 
-当前自动化结果为 110/110 通过。
+当前自动化结果为 112/112 通过。
 
 PaddleOCR 3.x 在部分 Windows CPU 上默认 oneDNN/PIR 路径会失败；适配器在导入 Paddle
 之前设置兼容标志，并显式使用 mobile detection/recognition 模型与 `enable_mkldnn=False`。

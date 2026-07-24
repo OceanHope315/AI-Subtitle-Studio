@@ -6,8 +6,8 @@ AI Subtitle Studio 是一个完整可运行的 AI 视频字幕辅助制作平台
 任务恢复、校对、逐帧时间轴检查、自动保存与 SRT 导出；同时以独立 WhisperX job
 生成句级音频字幕和词级时间戳，由用户选择视觉轨或音频轨进入最终字幕。
 
-本项目是从旧 Tkinter 原型重新设计的新工程；旧目录 `D:\new project` 未被修改。
-详细审查见 [旧项目代码审查报告](docs/OLD_PROJECT_REVIEW.md)。
+本项目是从旧 Tkinter 原型重新设计的新工程。详细背景见
+[旧项目代码审查报告](docs/OLD_PROJECT_REVIEW.md)。
 
 ## 已实现的产品闭环
 
@@ -96,69 +96,78 @@ AI-Subtitle-Studio/
 
 ## 环境要求
 
-- Windows 10/11（当前实测环境）；Linux/macOS 也可运行
+- Windows 10/11（当前完整实测环境）
 - Python 3.12
 - Node.js 20+
 - MongoDB 6+（推荐但非启动必需）
 - 首次 PaddleOCR / Whisper 运行需下载模型；之后可离线推理
 
+服务代码不依赖固定盘符；PowerShell 安装和启动脚本当前在 Windows 上持续验证。
+Linux/macOS 可分别按下方手动命令启动三个服务，但尚未纳入 CI 的真实模型推理矩阵。
 当前 Windows 上 PaddlePaddle 3.x 的 oneDNN/PIR 兼容开关已在代码中处理。
 
 ## 一次性安装
 
-可在项目根目录执行：
+克隆仓库后，在项目根目录执行：
 
 ```powershell
 .\scripts\setup.ps1
 ```
 
-安装脚本默认安装可独立工作的 OCR 基础环境。启用 WhisperX 词级时间戳还需安装与本机
-Torch/CUDA 组合匹配的可选依赖：
+安装脚本会验证 Python/Node.js 版本，在 `ai_service/.venv` 创建隔离环境，使用
+`requirements.txt` 安装 AI 基础依赖，并通过两个 `package-lock.json` 执行 `npm ci`。
+它只在本地配置不存在时复制 `.env.example`，不会覆盖已有配置。
+
+启用 WhisperX 词级时间戳时：
 
 ```powershell
-cd D:\AI-Subtitle-Studio\ai_service
-python -m pip install -r requirements-whisperx.txt
+.\scripts\setup.ps1 -WithWhisperX
 ```
 
-也可以分别安装：
+WhisperX/Torch 的 GPU wheel 必须与本机 CUDA 运行时匹配，因此保持为可选依赖。也可以
+分别安装：
 
 ```powershell
-cd D:\AI-Subtitle-Studio\ai_service
-python -m pip install -r requirements-whisperx.txt
+python -m venv ai_service\.venv
+.\ai_service\.venv\Scripts\python.exe -m pip install -r ai_service\requirements.txt
 
-cd D:\AI-Subtitle-Studio\backend
-npm install
+Push-Location backend
+npm ci
+Pop-Location
 
-cd D:\AI-Subtitle-Studio\frontend
-npm install
+Push-Location frontend
+npm ci
+Pop-Location
 ```
-
-建议为 Python 创建虚拟环境后再安装依赖。
 
 ## 启动
 
-打开三个 PowerShell 终端。
+在仓库根目录一键启动三个开发服务：
+
+```powershell
+.\scripts\start.ps1
+```
+
+该脚本根据自身位置定位仓库，不依赖克隆目录或盘符。也可以手动打开三个终端。
 
 AI Service：
 
 ```powershell
-cd D:\AI-Subtitle-Studio\ai_service
-python main.py
+cd ai_service
+.\.venv\Scripts\python.exe main.py
 ```
 
 Backend：
 
 ```powershell
-cd D:\AI-Subtitle-Studio\backend
-copy .env.example .env
+cd backend
 npm run dev
 ```
 
 Frontend：
 
 ```powershell
-cd D:\AI-Subtitle-Studio\frontend
-copy .env.example .env.local
+cd frontend
 npm run dev
 ```
 
@@ -170,7 +179,6 @@ npm run dev
 ### 使用 MongoDB
 
 ```powershell
-cd D:\AI-Subtitle-Studio
 docker compose up -d mongo
 ```
 
@@ -186,21 +194,23 @@ MongoDB 与共享对象存储。
 
 ## 使用真实样例评测
 
-默认脚本使用用户提供的旧项目测试素材，并采用前端为该素材预置的手动 ROI
-`{x:0.08,y:0.52,width:0.84,height:0.24}`：
+测试视频不随仓库分发。请只使用你有权处理的本地素材，并显式传入视频路径；可选地传入
+对应文本参考：
 
 ```powershell
-.\scripts\evaluate-test-video.ps1
+.\scripts\evaluate-test-video.ps1 `
+  -Video "C:\path\to\video.mp4" `
+  -GroundTruth "C:\path\to\reference.txt"
 ```
 
-等价命令：
+该历史回归采用 ROI `{x:0.08,y:0.52,width:0.84,height:0.24}`。等价命令：
 
 ```powershell
-python ai_service\cli.py `
-  "D:\new project\test\testVideo.mp4" `
+.\ai_service\.venv\Scripts\python.exe ai_service\cli.py `
+  "C:\path\to\video.mp4" `
   --roi 0.08 0.52 0.84 0.24 `
-  --ground-truth "D:\new project\test\testVideo.txt" `
-  --output "D:\AI-Subtitle-Studio\data\subtitles\test-video"
+  --ground-truth "C:\path\to\reference.txt" `
+  --output "data\subtitles\test-video"
 ```
 
 产物：
@@ -239,7 +249,7 @@ python scripts\evaluate-visual-timeline.py `
 - P0 时间校准使用 PyAV 原始 PTS；目标 Byron 视频实测为 29.97 FPS、`time_base=1/11988`、
   `start_pts=400`。相邻源帧 762/763 正好从 `AND HEAL THEM` 切到 `WHEN YOU CAN`；映射
   边界为 25.458792 秒，相对旧 25.460 秒误差 1.208ms，小于一个 33.367ms 呈现帧
-- AI / Backend / Frontend 自动化测试分别为 80 / 27 / 62 项；compile、lint 与生产构建通过
+- AI / Backend / Frontend 自动化测试分别为 112 / 37 / 83 项；compile、lint 与生产构建通过
 - P1-A 最终真实 Web 验收使用现有 1080×1920、252 帧样片：主动在 seq 4 断开后，经
   3 个 SSE 补发分段连续恢复到 seq 54，无重复或倒退，收到 5 条字幕的终态；新开的
   Edge 页面恢复到 boundary refinement，并展示真实帧、ROI、OCR、PTS 与 5 条事件计数
@@ -256,16 +266,17 @@ python scripts\evaluate-visual-timeline.py `
 ## 测试命令
 
 ```powershell
-cd D:\AI-Subtitle-Studio\ai_service
-python -m pytest tests -q
+.\ai_service\.venv\Scripts\python.exe -m pytest ai_service\tests -q
 
-cd D:\AI-Subtitle-Studio\backend
+Push-Location backend
 npm test
+Pop-Location
 
-cd D:\AI-Subtitle-Studio\frontend
+Push-Location frontend
 npm run lint
 npm run test
 npm run build
+Pop-Location
 ```
 
 ## 配置
@@ -293,7 +304,7 @@ GPU 运行时、修改本地 `.env` 并重启 AI 服务。
 Windows + NVIDIA GPU 可在 `ai_service` 目录执行（示例为 CUDA 12.6）：
 
 ```powershell
-cd D:\AI-Subtitle-Studio\ai_service
+cd ai_service
 python -m pip uninstall -y paddlepaddle paddlepaddle-gpu
 python -m pip install paddlepaddle-gpu==3.3.0 `
   -i https://www.paddlepaddle.org.cn/packages/stable/cu126/
@@ -389,3 +400,12 @@ TEXT_SIMILARITY_THRESHOLD=0.75
 - V2：可选字幕区域自动估计、批量 PaddleOCR、扩充更多视频样式的视觉真值集。
 - V3：WhisperX 词级对齐、OCR/ASR 动态规划融合、GPU worker 与任务队列。
 - V4：翻译、术语库、多人协作、版本历史、对象存储和云端部署。
+
+## 贡献、安全与许可证
+
+- 贡献流程和本地验证命令见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+- 安全问题请按 [SECURITY.md](SECURITY.md) 私下报告。
+- 项目按 [Apache License 2.0](LICENSE) 开源。
+
+仓库不分发测试视频、音频、模型权重或用户任务数据。提交新样例前必须确认其允许公开
+再分发，并在贡献说明中记录来源和许可证。
