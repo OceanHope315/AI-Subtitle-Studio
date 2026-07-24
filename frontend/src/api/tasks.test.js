@@ -9,10 +9,56 @@ import {
   saveSubtitles,
   startTaskRecognition,
   streamTaskEvents,
+  uploadVideo,
 } from './tasks'
 
 afterEach(() => {
   vi.unstubAllGlobals()
+})
+
+describe('uploadVideo', () => {
+  it.each([
+    ['audio', 'audio'],
+    [undefined, 'audio_visual'],
+  ])('sends analysis mode %s as multipart analysis_mode', async (analysisMode, expected) => {
+    class MockXMLHttpRequest {
+      static instance
+
+      constructor() {
+        MockXMLHttpRequest.instance = this
+        this.response = { taskId: 'task-1' }
+        this.status = 201
+        this.listeners = {}
+        this.upload = {
+          addEventListener: vi.fn(),
+        }
+      }
+
+      open(method, url) {
+        this.method = method
+        this.url = url
+      }
+
+      addEventListener(type, listener) {
+        this.listeners[type] = listener
+      }
+
+      send(body) {
+        this.body = body
+        queueMicrotask(() => this.listeners.load())
+      }
+    }
+    vi.stubGlobal('XMLHttpRequest', MockXMLHttpRequest)
+    const file = new File(['video'], 'lesson.mp4', { type: 'video/mp4' })
+
+    await expect(uploadVideo(file, undefined, analysisMode)).resolves.toEqual({ taskId: 'task-1' })
+
+    const xhr = MockXMLHttpRequest.instance
+    expect(xhr.method).toBe('POST')
+    expect(xhr.url).toBe(`${API_BASE_URL}/tasks`)
+    expect(xhr.body.get('video')).toBe(file)
+    expect(xhr.body.get('analysis_mode')).toBe(expected)
+  })
 })
 
 describe('startTaskRecognition', () => {

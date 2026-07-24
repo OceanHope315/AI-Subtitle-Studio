@@ -31,6 +31,27 @@ test("parent task status reflects two independent terminal states", () => {
   assert.equal(failed.status, "failed");
   assert.equal(failed.progress, 25);
   assert.match(failed.error, /OCR failed.*WhisperX failed/);
+
+  const audioCompleted = aggregateParentState({
+    analysisMode: "audio",
+    visualStatus: "skipped",
+    audioStatus: "completed",
+    visualProgress: 0,
+    audioProgress: 100,
+  });
+  assert.equal(audioCompleted.status, "completed");
+  assert.equal(audioCompleted.progress, 100);
+
+  const audioFailed = aggregateParentState({
+    analysisMode: "audio",
+    visualStatus: "skipped",
+    audioStatus: "failed",
+    audioProgress: 40,
+    audioError: "WhisperX failed",
+  });
+  assert.equal(audioFailed.status, "failed");
+  assert.equal(audioFailed.progress, 40);
+  assert.match(audioFailed.error, /WhisperX failed/);
 });
 
 test("legacy visual AI jobs populate only the visual track and preserve final subtitles", async (context) => {
@@ -262,6 +283,88 @@ test("visual and audio jobs run independently and persist both source tracks", a
   assert.equal(result.audioSubtitles[0].end, 21.4);
   assert.equal(result.subtitles[0].text, "Keep me");
   await assert.rejects(fs.access(artifactService.srtPath(id)));
+  await store.close();
+});
+
+test("audio-only tasks never submit a visual job and complete from audio alone", async (context) => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "subtitle-audio-processor-"));
+  context.after(async () => fs.rm(directory, { recursive: true, force: true }));
+  const store = await new FileTaskStore(path.join(directory, "tasks.json")).initialize();
+  const videoPath = path.join(directory, "video.mp4");
+  await fs.writeFile(videoPath, "fixture");
+  const id = "00000000-0000-4000-8000-000000000004";
+  await store.create({
+    id,
+    filename: "video.mp4",
+    storedFilename: "video.mp4",
+    videoPath,
+    analysisMode: "audio",
+    status: "queued",
+    roi: null,
+    progress: 0,
+    metadata: { size: 7, mimetype: "video/mp4" },
+    subtitles: [],
+    visualSubtitles: [],
+    audioSubtitles: [],
+    visualStatus: "skipped",
+    audioStatus: "queued",
+    visualProgress: 0,
+    audioProgress: 0,
+    error: null,
+    artifacts: {},
+  });
+
+  let visualCalls = 0;
+  let audioSubmissions = 0;
+  const aiClient = {
+    async createVisualJob() {
+      visualCalls += 1;
+      throw new Error("visual analysis must be skipped");
+    },
+    async getVisualJob() {
+      visualCalls += 1;
+      throw new Error("visual analysis must be skipped");
+    },
+    async createAudioJob(task) {
+      audioSubmissions += 1;
+      assert.equal(task.analysisMode, "audio");
+      assert.equal(task.roi, null);
+      return { task_id: `${id}-audio`, status: "queued", progress: 5 };
+    },
+    async getAudioJob(jobId) {
+      assert.equal(jobId, `${id}-audio`);
+      return {
+        task_id: jobId,
+        status: "completed",
+        progress: 100,
+        audio_subtitles: [{
+          text: "Audio only",
+          start: 0.1,
+          end: 1.2,
+          confidence: 0.9,
+        }],
+      };
+    },
+  };
+  const processor = new TaskProcessor({
+    store,
+    aiClient,
+    artifactService: new SubtitleArtifactService(path.join(directory, "subtitles")),
+    config: { aiPollIntervalMs: 1, aiPollMaxAttempts: 3, aiPollMaxErrors: 2 },
+    logger: { warn() {}, error() {} },
+  });
+
+  const result = await processor.processTask(id);
+
+  assert.equal(visualCalls, 0);
+  assert.equal(audioSubmissions, 1);
+  assert.equal(result.status, "completed");
+  assert.equal(result.progress, 100);
+  assert.equal(result.visualStatus, "skipped");
+  assert.equal(result.visualJobId ?? null, null);
+  assert.deepEqual(result.visualSubtitles, []);
+  assert.equal(result.audioStatus, "completed");
+  assert.equal(result.audioSubtitles[0].text, "Audio only");
   await store.close();
 });
 

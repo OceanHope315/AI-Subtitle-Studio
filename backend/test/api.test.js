@@ -5,7 +5,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, test } from "node:test";
 import request from "supertest";
 import { createApp } from "../app.js";
-import { validateRoi } from "../routes/tasks.js";
+import { validateAnalysisMode, validateRoi } from "../routes/tasks.js";
 import { SubtitleArtifactService } from "../services/subtitleService.js";
 import { FileTaskStore } from "../services/taskStore.js";
 
@@ -24,6 +24,16 @@ test("ROI validation rejects non-finite numbers", () => {
       (error) => error.status === 400 && error.code === "INVALID_ROI",
     );
   }
+});
+
+test("analysis mode validation defaults legacy clients and rejects unknown modes", () => {
+  assert.equal(validateAnalysisMode(undefined), "audio_visual");
+  assert.equal(validateAnalysisMode("audio"), "audio");
+  assert.equal(validateAnalysisMode("audio_visual"), "audio_visual");
+  assert.throws(
+    () => validateAnalysisMode("visual"),
+    (error) => error.status === 400 && error.code === "INVALID_ANALYSIS_MODE",
+  );
 });
 
 describe("tasks API", () => {
@@ -70,6 +80,7 @@ describe("tasks API", () => {
 
     assert.match(created.body.id, /^[a-f\d-]{36}$/i);
     assert.equal(created.body.filename, "demo.mp4");
+    assert.equal(created.body.analysis_mode, "audio_visual");
     assert.equal(created.body.status, "awaiting_roi");
     assert.equal(created.body.roi, null);
     assert.deepEqual(enqueued, []);
@@ -112,6 +123,49 @@ describe("tasks API", () => {
     assert.match(exported.headers["content-disposition"], /filename="final\.srt"/);
     assert.match(srt, /00:00:00,000 --> 00:00:02,125/);
     assert.match(srt, /Today I will teach you/);
+  });
+
+  test("audio-only uploads skip ROI and visual analysis, then enqueue immediately", async () => {
+    const created = await request(app)
+      .post("/api/tasks")
+      .field("analysis_mode", "audio")
+      .attach("video", mp4Fixture(), { filename: "speech.mp4", contentType: "video/mp4" })
+      .expect(201);
+
+    assert.equal(created.body.analysis_mode, "audio");
+    assert.equal(created.body.status, "queued");
+    assert.equal(created.body.roi, null);
+    assert.equal(created.body.visual_status, "skipped");
+    assert.equal(created.body.visual_progress, 0);
+    assert.equal(created.body.audio_status, "queued");
+    assert.deepEqual(enqueued, [created.body.id]);
+
+    const persisted = await store.findById(created.body.id);
+    assert.equal(persisted.analysisMode, "audio");
+    assert.equal(persisted.visualStatus, "skipped");
+    assert.equal(persisted.audioStatus, "queued");
+
+    const events = await request(app)
+      .get(`/api/tasks/${created.body.id}/events`)
+      .expect(409);
+    assert.equal(events.body.error.code, "VISUAL_PROGRESS_NOT_APPLICABLE");
+
+    const listed = await request(app).get("/api/tasks").expect(200);
+    assert.equal(listed.body.tasks[0].analysis_mode, "audio");
+    assert.equal(listed.body.tasks[0].visual_status, "skipped");
+  });
+
+  test("rejects an unknown analysis mode without persisting the upload", async () => {
+    const response = await request(app)
+      .post("/api/tasks")
+      .field("analysis_mode", "visual")
+      .attach("video", mp4Fixture(), { filename: "invalid.mp4", contentType: "video/mp4" })
+      .expect(400);
+
+    assert.equal(response.body.error.code, "INVALID_ANALYSIS_MODE");
+    assert.equal((await store.list()).length, 0);
+    assert.deepEqual(await fs.readdir(config.uploadDir), []);
+    assert.deepEqual(enqueued, []);
   });
 
   test("returns visual and audio source tracks separately and exposes dual progress URLs", async () => {

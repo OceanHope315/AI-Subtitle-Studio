@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { uploadVideo } from '../api/tasks'
 import AppHeader from '../components/AppHeader'
 import UploadPanel from '../components/UploadPanel'
+import { ANALYSIS_MODES } from '../utils/analysisMode'
 
 function resolveTaskId(payload) {
   const task = payload?.task || payload?.data || payload
@@ -14,6 +15,7 @@ export default function NewTaskPage() {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadError, setUploadError] = useState('')
+  const [analysisMode, setAnalysisMode] = useState(ANALYSIS_MODES.AUDIO_VISUAL)
 
   const handleUpload = async (file, validationError = '') => {
     if (!file) {
@@ -24,7 +26,7 @@ export default function NewTaskPage() {
     setUploadProgress(0)
     setUploadError('')
     try {
-      const payload = await uploadVideo(file, setUploadProgress)
+      const payload = await uploadVideo(file, setUploadProgress, analysisMode)
       const taskId = resolveTaskId(payload)
       if (!taskId) throw new Error('后端未返回有效的任务编号。')
       navigate(`/tasks/${taskId}`, { replace: true })
@@ -38,7 +40,14 @@ export default function NewTaskPage() {
   return (
     <div className="app-shell">
       <AppHeader onHome={() => navigate('/tasks')} onNewTask={() => navigate('/tasks/new')} />
-      <UploadPanel uploading={uploading} uploadProgress={uploadProgress} error={uploadError} onUpload={handleUpload} />
+      <UploadPanel
+        uploading={uploading}
+        uploadProgress={uploadProgress}
+        error={uploadError}
+        analysisMode={analysisMode}
+        onAnalysisModeChange={setAnalysisMode}
+        onUpload={handleUpload}
+      />
     </div>
   )
 }

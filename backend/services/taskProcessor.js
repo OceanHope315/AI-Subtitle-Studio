@@ -3,10 +3,14 @@ import {
   normalizeAudioSubtitles,
   normalizeVisualSubtitles,
 } from "./sourceSubtitleService.js";
+import {
+  ANALYSIS_MODES,
+  analysisModeOf,
+} from "../utils/analysisMode.js";
 
-const TERMINAL_STATUSES = new Set(["completed", "failed"]);
+const TERMINAL_STATUSES = new Set(["completed", "failed", "skipped"]);
 const PROCESSABLE_STATUSES = new Set(["queued", "processing"]);
-const SOURCE_STATUSES = new Set(["pending", "queued", "processing", "completed", "failed"]);
+const SOURCE_STATUSES = new Set(["pending", "queued", "processing", "completed", "failed", "skipped"]);
 
 const SOURCE_FIELDS = {
   visual: {
@@ -56,6 +60,7 @@ function jobIdFromPayload(payload, taskId) {
 }
 
 function sourceStatus(task, source) {
+  if (source === "visual" && analysisModeOf(task) === ANALYSIS_MODES.AUDIO) return "skipped";
   const field = SOURCE_FIELDS[source].status;
   if (SOURCE_STATUSES.has(task?.[field])) return task[field];
   if (source === "visual" && PROCESSABLE_STATUSES.has(task?.status)) return task.status;
@@ -71,38 +76,53 @@ function sourceProgress(task, source) {
 }
 
 function aggregateParentState(task) {
-  const visualStatus = sourceStatus(task, "visual");
-  const audioStatus = sourceStatus(task, "audio");
-  const bothTerminal = TERMINAL_STATUSES.has(visualStatus) && TERMINAL_STATUSES.has(audioStatus);
-  const eitherCompleted = visualStatus === "completed" || audioStatus === "completed";
+  const sources = ["visual", "audio"].filter((source) => sourceStatus(task, source) !== "skipped");
+  if (sources.length === 0) {
+    return {
+      status: "failed",
+      progress: 0,
+      message: "No subtitle source is enabled",
+      error: "No subtitle source is enabled",
+    };
+  }
+  const statuses = Object.fromEntries(sources.map((source) => [source, sourceStatus(task, source)]));
+  const allTerminal = sources.every((source) => TERMINAL_STATUSES.has(statuses[source]));
+  const eitherCompleted = sources.some((source) => statuses[source] === "completed");
   const averagedProgress = Math.round(
-    (sourceProgress(task, "visual") + sourceProgress(task, "audio")) / 2,
+    sources.reduce((total, source) => total + sourceProgress(task, source), 0) / sources.length,
   );
+  const statusSummary = sources
+    .map((source) => `${source === "visual" ? "Visual" : "Audio"} ${statuses[source]}`)
+    .join(" · ");
 
-  if (!bothTerminal) {
+  if (!allTerminal) {
     return {
       status: "processing",
       progress: averagedProgress,
-      message: `Visual ${visualStatus} · Audio ${audioStatus}`,
+      message: statusSummary,
       error: null,
     };
   }
   if (eitherCompleted) {
-    const partial = visualStatus === "failed" || audioStatus === "failed";
+    const partial = sources.some((source) => statuses[source] === "failed");
     return {
       status: "completed",
       progress: 100,
-      message: partial
-        ? "Subtitle extraction completed with one source unavailable"
-        : "Visual and audio subtitle extraction completed",
+      message: sources.length === 1
+        ? `${sources[0] === "visual" ? "Visual" : "Audio"} subtitle extraction completed`
+        : (partial
+          ? "Subtitle extraction completed with one source unavailable"
+          : "Visual and audio subtitle extraction completed"),
       error: null,
     };
   }
-  const errors = [task.visualError, task.audioError].filter(Boolean);
+  const errors = sources.map((source) => task[SOURCE_FIELDS[source].error]).filter(Boolean);
   return {
     status: "failed",
     progress: averagedProgress,
-    message: "Visual and audio subtitle extraction failed",
+    message: sources.length === 1
+      ? `${sources[0] === "visual" ? "Visual" : "Audio"} subtitle extraction failed`
+      : "Visual and audio subtitle extraction failed",
     error: (errors.join(" | ") || "AI processing failed").slice(0, 4000),
   };
 }
@@ -352,7 +372,13 @@ export class TaskProcessor {
     const supportsAudio = typeof this.aiClient.createAudioJob === "function"
       && typeof this.aiClient.getAudioJob === "function";
     const initialPatch = {};
-    if (!SOURCE_STATUSES.has(task.visualStatus)) {
+    if (analysisModeOf(task) === ANALYSIS_MODES.AUDIO) {
+      if (task.visualStatus !== "skipped") {
+        initialPatch.visualStatus = "skipped";
+        initialPatch.visualProgress = 0;
+        initialPatch.visualError = null;
+      }
+    } else if (!SOURCE_STATUSES.has(task.visualStatus)) {
       initialPatch.visualStatus = task.aiJobId || task.status === "processing" ? "processing" : "queued";
     }
     if (!supportsAudio && !TERMINAL_STATUSES.has(sourceStatus(task, "audio"))) {
@@ -366,7 +392,8 @@ export class TaskProcessor {
     if (!task) return null;
 
     const work = [];
-    if (!TERMINAL_STATUSES.has(sourceStatus(task, "visual"))) {
+    if (analysisModeOf(task) === ANALYSIS_MODES.AUDIO_VISUAL
+      && !TERMINAL_STATUSES.has(sourceStatus(task, "visual"))) {
       work.push(this.processSource(taskId, "visual"));
     }
     if (supportsAudio && !TERMINAL_STATUSES.has(sourceStatus(task, "audio"))) {

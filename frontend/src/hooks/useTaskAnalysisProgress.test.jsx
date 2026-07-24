@@ -39,6 +39,23 @@ beforeEach(() => {
 })
 
 describe('useTaskAnalysisProgress connection recovery', () => {
+  it('does not open the visual event stream for an audio-only task', async () => {
+    const task = {
+      ...snapshotTask(),
+      analysis_mode: 'audio',
+      progress_snapshot: undefined,
+    }
+    const view = renderHook(() => useTaskAnalysisProgress('task-one', task))
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(streamTaskEvents).not.toHaveBeenCalled()
+    expect(view.result.current.connection.status).toBe('idle')
+    view.unmount()
+  })
+
   it('starts after snapshot hydration, reconnects from the accepted cursor, and reports recovery', async () => {
     let calls = 0
     streamTaskEvents.mockImplementation(async (_taskId, options) => {

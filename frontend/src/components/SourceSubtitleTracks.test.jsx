@@ -74,4 +74,20 @@ describe('SourceSubtitleTracks', () => {
     expect(screen.getByRole('button', { name: 'Use Audio' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Use Visual' })).toBeDisabled()
   })
+
+  it('shows only the audio source for an audio-only task', () => {
+    render(
+      <SourceSubtitleTracks
+        analysisMode="audio"
+        visualSubtitles={visualSubtitles}
+        audioSubtitles={audioSubtitles}
+        onUseAudio={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText(/纯音频模式/)).toBeInTheDocument()
+    expect(screen.getByText('watch out')).toBeInTheDocument()
+    expect(screen.queryByText('WATCH OUT')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Use Visual' })).not.toBeInTheDocument()
+  })
 })

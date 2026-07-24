@@ -1,8 +1,12 @@
 import mongoose from "mongoose";
 import { audioSubtitleSchema } from "./AudioSubtitle.js";
 import { visualSubtitleSchema } from "./VisualSubtitle.js";
+import {
+  ANALYSIS_MODE_VALUES,
+  DEFAULT_ANALYSIS_MODE,
+} from "../utils/analysisMode.js";
 
-const sourceStatusValues = ["pending", "queued", "processing", "completed", "failed"];
+const sourceStatusValues = ["pending", "queued", "processing", "completed", "failed", "skipped"];
 
 const subtitleSchema = new mongoose.Schema(
   {
@@ -38,6 +42,13 @@ export const videoTaskSchema = new mongoose.Schema(
     filename: { type: String, required: true },
     storedFilename: { type: String, required: true },
     videoPath: { type: String, required: true },
+    analysisMode: {
+      type: String,
+      required: true,
+      enum: ANALYSIS_MODE_VALUES,
+      default: DEFAULT_ANALYSIS_MODE,
+      index: true,
+    },
     status: {
       type: String,
       required: true,

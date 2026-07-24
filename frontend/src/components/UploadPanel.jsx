@@ -1,11 +1,33 @@
 import { useRef, useState } from 'react'
 import { CaptionsIcon, ClockIcon, FilmIcon, SparklesIcon, UploadIcon } from './Icons'
+import { ANALYSIS_MODES, isAudioOnlyMode } from '../utils/analysisMode'
 
 const MAX_DISPLAY_SIZE = '建议不超过 2 GB'
 
-export default function UploadPanel({ uploading, uploadProgress, error, onUpload }) {
+const MODE_OPTIONS = [
+  {
+    value: ANALYSIS_MODES.AUDIO,
+    title: '纯音频模式',
+    description: '原视频无画面字幕，仅使用 WhisperX 识别声音，上传后直接开始分析。',
+  },
+  {
+    value: ANALYSIS_MODES.AUDIO_VISUAL,
+    title: '音频 + 视觉模式',
+    description: '同时识别声音和画面硬字幕，可在工作区对比两条来源轨。',
+  },
+]
+
+export default function UploadPanel({
+  uploading,
+  uploadProgress,
+  error,
+  analysisMode = ANALYSIS_MODES.AUDIO_VISUAL,
+  onAnalysisModeChange,
+  onUpload,
+}) {
   const [dragging, setDragging] = useState(false)
   const inputRef = useRef(null)
+  const audioOnly = isAudioOnlyMode(analysisMode)
 
   const submitFile = (file) => {
     if (!file) return
@@ -34,9 +56,37 @@ export default function UploadPanel({ uploading, uploadProgress, error, onUpload
         <div className="eyebrow"><SparklesIcon /> AI 驱动的视频字幕工具</div>
         <h1 id="hero-title">让字幕制作，从繁琐校对<br /><span>变成高效创作</span></h1>
         <p className="hero-description">
-          上传游戏或讲解视频，自动识别画面硬字幕并生成精准时间轴，
+          上传游戏或讲解视频，可选择仅识别音频，或同时识别画面硬字幕，
           在一个工作台内完成校对与 SRT 导出。
         </p>
+
+        <fieldset className="analysis-mode-selector" disabled={uploading}>
+          <legend>选择分析模式</legend>
+          <div className="analysis-mode-options">
+            {MODE_OPTIONS.map((option) => {
+              const selected = analysisMode === option.value
+              return (
+                <label
+                  className={`analysis-mode-option ${selected ? 'is-selected' : ''}`}
+                  key={option.value}
+                >
+                  <input
+                    type="radio"
+                    name="analysis-mode"
+                    value={option.value}
+                    checked={selected}
+                    onChange={() => onAnalysisModeChange?.(option.value)}
+                  />
+                  <span className="analysis-mode-indicator" aria-hidden="true"><i /></span>
+                  <span>
+                    <strong>{option.title}</strong>
+                    <small>{option.description}</small>
+                  </span>
+                </label>
+              )
+            })}
+          </div>
+        </fieldset>
 
         <div
           className={`upload-zone ${dragging ? 'is-dragging' : ''} ${uploading ? 'is-uploading' : ''}`}
@@ -74,7 +124,11 @@ export default function UploadPanel({ uploading, uploadProgress, error, onUpload
               <div className="upload-orbit"><FilmIcon /></div>
               <div>
                 <h2>正在安全上传视频</h2>
-                <p>请保持页面开启，上传完成后将自动估计字幕区域</p>
+                <p>
+                  {audioOnly
+                    ? '请保持页面开启，上传完成后将直接开始音频识别'
+                    : '请保持页面开启，上传完成后将自动估计字幕区域'}
+                </p>
               </div>
               <div className="upload-progress-row">
                 <div className="progress-track"><span style={{ width: `${uploadProgress}%` }} /></div>

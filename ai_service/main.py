@@ -208,7 +208,7 @@ ocr_work_lock = Lock()
 
 app = FastAPI(
     title="AI Subtitle Studio - AI Service",
-    version="1.0.0",
+    version="1.1.0",
     description="PaddleOCR-first subtitle extraction with Whisper-assisted correction.",
     lifespan=_lifespan,
 )

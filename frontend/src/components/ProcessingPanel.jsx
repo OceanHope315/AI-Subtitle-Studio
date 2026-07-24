@@ -3,6 +3,7 @@ import { getTaskPreviewUrl } from '../api/tasks'
 import usePreloadedAsset from '../hooks/usePreloadedAsset'
 import usePrefersReducedMotion from '../hooks/usePrefersReducedMotion'
 import { STAGE_LABELS } from '../utils/analysisProgress'
+import { ANALYSIS_MODES, getTaskAnalysisMode } from '../utils/analysisMode'
 import AnalysisFrame from './AnalysisFrame'
 import { AlertIcon, CheckIcon, RotateIcon, SparklesIcon } from './Icons'
 
@@ -111,6 +112,8 @@ export default function ProcessingPanel({
 }) {
   const reducedMotion = usePrefersReducedMotion()
   const taskId = task?.taskId || task?.id || ''
+  const analysisMode = getTaskAnalysisMode(task)
+  const audioOnly = analysisMode === ANALYSIS_MODES.AUDIO
   const model = analysis?.progress
   const connection = analysis?.connection || { status: 'idle', attempts: 0 }
   const pipelineFrame = model?.frame || null
@@ -164,8 +167,15 @@ export default function ProcessingPanel({
           <span className="failure-icon"><AlertIcon width="30" height="30" /></span>
           <div>
             <p className="state-kicker">处理未完成</p>
-            <h1>视频分析失败</h1>
-            <p>{model?.failureMessage || task?.error || task?.message || 'AI 服务处理视频时遇到问题，请稍后重试。'}</p>
+            <h1>{audioOnly ? '音频分析失败' : '视频分析失败'}</h1>
+            <p>
+              {model?.failureMessage
+                || task?.error
+                || task?.message
+                || (audioOnly
+                  ? 'AI 服务处理音频时遇到问题，请稍后重试。'
+                  : 'AI 服务处理视频时遇到问题，请稍后重试。')}
+            </p>
           </div>
           <div className="state-actions">
             <button className="button button-primary" type="button" onClick={retryAll}>
@@ -180,17 +190,34 @@ export default function ProcessingPanel({
 
   const status = completed
     ? 'completed'
-    : (model?.terminal && task?.status === 'processing' ? 'live' : connection.status)
-  const connectionLabel = CONNECTION_LABELS[status] || CONNECTION_LABELS.idle
+    : (audioOnly
+      ? (task?.status === 'processing' ? 'live' : 'idle')
+      : (model?.terminal && task?.status === 'processing' ? 'live' : connection.status))
+  const connectionLabel = audioOnly
+    ? (task?.status === 'processing' ? '音频分析中' : '等待音频分析')
+    : (CONNECTION_LABELS[status] || CONNECTION_LABELS.idle)
 
   return (
     <main className="state-page analysis-progress-page">
       <section className={`processing-card analysis-processing-card ${reducedMotion ? 'is-reduced-motion' : ''}`} data-reduced-motion={reducedMotion ? 'true' : 'false'}>
         <header className="analysis-progress-header">
           <div>
-            <p className="state-kicker"><SparklesIcon width="14" height="14" /> AI 可视化分析</p>
-            <h1>{loading && !task ? '正在读取任务快照…' : (model?.stage ? model.stageLabel : '正在提取视频字幕')}</h1>
-            <p>{model?.message || '等待真实管线进度；分析会在后台持续运行。'}</p>
+            <p className="state-kicker">
+              <SparklesIcon width="14" height="14" />
+              {audioOnly ? 'AI 音频分析 · 纯音频模式' : 'AI 可视化分析 · 音频 + 视觉模式'}
+            </p>
+            <h1>
+              {loading && !task
+                ? '正在读取任务快照…'
+                : (audioOnly
+                  ? '正在提取音频字幕'
+                  : (model?.stage ? model.stageLabel : '正在提取视频字幕'))}
+            </h1>
+            <p>
+              {audioOnly
+                ? '已跳过画面字幕识别；WhisperX 会在后台持续生成词级时间轴。'
+                : (model?.message || '等待真实管线进度；分析会在后台持续运行。')}
+            </p>
           </div>
           <span className={`analysis-connection is-${status}`} role="status" aria-live="polite">
             <i /> {connectionLabel}
@@ -212,24 +239,29 @@ export default function ProcessingPanel({
           ><span style={{ width: `${progress}%` }} /></div>
         </div>
 
-        <section className="source-job-progress" aria-label="双轨提取进度">
-          <article className={`source-job-card is-${visualStatus}`}>
-            <div>
-              <span>Visual Subtitle Extraction</span>
-              <strong>PaddleOCR 视觉字幕</strong>
-              <small>{SOURCE_STATUS_LABELS[visualStatus] || visualStatus}</small>
-            </div>
-            <b>{visualProgress}%</b>
-            <div
-              className="progress-track"
-              role="progressbar"
-              aria-label="视觉字幕提取进度"
-              aria-valuemin="0"
-              aria-valuemax="100"
-              aria-valuenow={visualProgress}
-            ><span style={{ width: `${visualProgress}%` }} /></div>
-            {task?.visual_error && <p role="alert">{task.visual_error}</p>}
-          </article>
+        <section
+          className={`source-job-progress ${audioOnly ? 'is-audio-only' : ''}`}
+          aria-label={audioOnly ? '音频字幕提取进度' : '双轨提取进度'}
+        >
+          {!audioOnly && (
+            <article className={`source-job-card is-${visualStatus}`}>
+              <div>
+                <span>Visual Subtitle Extraction</span>
+                <strong>PaddleOCR 视觉字幕</strong>
+                <small>{SOURCE_STATUS_LABELS[visualStatus] || visualStatus}</small>
+              </div>
+              <b>{visualProgress}%</b>
+              <div
+                className="progress-track"
+                role="progressbar"
+                aria-label="视觉字幕提取进度"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow={visualProgress}
+              ><span style={{ width: `${visualProgress}%` }} /></div>
+              {task?.visual_error && <p role="alert">{task.visual_error}</p>}
+            </article>
+          )}
           <article className={`source-job-card is-${audioStatus}`}>
             <div>
               <span>Audio Subtitle Extraction</span>
@@ -249,7 +281,7 @@ export default function ProcessingPanel({
           </article>
         </section>
 
-        <div className="analysis-progress-grid">
+        {!audioOnly && <div className="analysis-progress-grid">
           <section className="analysis-frame-panel" aria-labelledby="analysis-frame-title">
             <div className="analysis-section-heading">
               <div>
@@ -332,9 +364,9 @@ export default function ProcessingPanel({
               )}
             </section>
           </aside>
-        </div>
+        </div>}
 
-        <ol className="analysis-stage-track" aria-label="分析阶段">
+        {!audioOnly && <ol className="analysis-stage-track" aria-label="分析阶段">
           {STAGES.map((stage, index) => {
             const done = completed || (currentStageIndex >= 0 && index < currentStageIndex)
             const active = !completed && index === currentStageIndex
@@ -345,9 +377,9 @@ export default function ProcessingPanel({
               </li>
             )
           })}
-        </ol>
+        </ol>}
 
-        {(pollingError || status === 'reconnecting' || status === 'offline') && (
+        {(pollingError || (!audioOnly && (status === 'reconnecting' || status === 'offline'))) && (
           <div className="connection-warning">
             <AlertIcon width="17" height="17" />
             <span>

@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import VideoPanel from './VideoPanel'
+import '../styles.css'
 
 const baseProps = {
   videoUrl: '/video.mp4',
@@ -19,7 +20,23 @@ afterEach(() => {
   delete HTMLVideoElement.prototype.cancelVideoFrameCallback
 })
 
-describe('VideoPanel presentation-frame synchronization', () => {
+describe('VideoPanel', () => {
+  it('contains the complete video frame and centers any letterboxing', () => {
+    HTMLVideoElement.prototype.requestVideoFrameCallback = vi.fn(() => 1)
+    HTMLVideoElement.prototype.cancelVideoFrameCallback = vi.fn()
+    const { container } = render(<VideoPanel {...baseProps} />)
+    const video = container.querySelector('video')
+    const style = window.getComputedStyle(video)
+
+    expect(video).toHaveClass('video-preview-media')
+    expect(style.objectFit).toBe('contain')
+    expect(style.objectPosition).toBe('center')
+    expect(style.maxWidth).toBe('100%')
+    expect(style.maxHeight).toBe('100%')
+    expect(style.minWidth).toBe('0px')
+    expect(style.minHeight).toBe('0px')
+  })
+
   it('uses requestVideoFrameCallback mediaTime and does not depend on timeupdate', () => {
     let frameCallback
     HTMLVideoElement.prototype.requestVideoFrameCallback = vi.fn((callback) => {

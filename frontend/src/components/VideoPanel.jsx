@@ -73,6 +73,7 @@ const VideoPanel = forwardRef(function VideoPanel(
       <div className="video-stage">
         <video
           ref={setVideoRef}
+          className="video-preview-media"
           controls
           preload="metadata"
           src={videoUrl}
